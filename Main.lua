@@ -2,290 +2,124 @@ local AddonName, Vars = ...
 local WTweaks = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
 local DBName = "WarcraftTweaks"
 
-function WTweaks:NoOp() end
+WTweaksModules = {}
 
 function WTweaks:GetConfig()
+	local configuration = {}
+	local defaults = {}
+	
+	for _, module in pairs(WTweaksModules) do
+		local moduleConfig = module:GetConfig()
+		
+		for groupName, group in pairs(moduleConfig) do
+			group["module"] = module
+			configuration[groupName] = group
+		end
+	end
+	
+	-- Remove the "default" value from the options since AceConfig doesn't understand them.
+	for groupName, optionGroup in pairs(configuration) do
+		defaults[groupName] = {}
+
+		if not optionGroup.set then
+			local module = optionGroup["module"]
+			optionGroup.set = function(info, value)
+				WTweaks.DB.profile[groupName][info[#info]] = value
+
+				module:OnSettingsChanged(WTweaks.DB.profile[groupName], groupName)
+				WTweaks:OnSettingsChanged(WTweaks.DB.profile[groupName], groupName)
+			end
+			
+			optionGroup.get = function(info)
+				return WTweaks.DB.profile[groupName][info[#info]]
+			end
+		end
+
+		optionGroup["module"] = nil
+
+		for name, option in pairs(optionGroup.args) do
+			defaults[groupName][name] = option.default
+			option.default = nil
+		end
+	end
+
+	WTweaks.Config = {
+		profile = defaults
+	}
+
 	return {
 		type = "group",
-		set = WTweaks.Events.SetConfig,
-		get = WTweaks.Events.GetConfig,
-	  	args = {
-			general = {
-				type = "group",
-				name = "General",
-				order = 0,
-				inline = true,
-				args = {
-					ShowXPBar = {
-						name = "Show XP bar",
-						desc = "This also affects the reputation bar.",
-						type = "toggle"
-					},
-					ShowMicroBar = {
-						name = "Show micro bar",
-						desc = "If unchecked, the micro bar will be hidden.",
-						type = "toggle"
-					},
-					ShowRestedXP = {
-						name = "Show resting indicator",
-						desc = "If unchecked, the resting indicator will be hidden.",
-						type = "toggle"
-					},
-					ShowErrorText = {
-						name = "Show red error text",
-						desc = "If unchecked, the red error text will be hidden.",
-						type = "toggle"
-					}
-				}
-			},
-			bags = {
-				type = "group",
-				name = "Bags / Vendor",
-				order = 1,
-				inline = true,
-				args = {
-					VendorJunk = {
-						name = "Vendor Junk",
-						desc = "Adds a vendor junk button to the bag frame.",
-						order = 0,
-						type = "select",
-						values = {
-							disabled = "Disable",
-							button = "Button only",
-							autoButton = "Automatic + button",
-							auto = "Automatically"
-						}
-					},
-					AutoRepair = {
-						name = "Auto Repair",
-						desc = "If checked, your gear will automatically be repaired.",
-						order = 1,
-						type = "select",
-						values = {
-							disabled = "Disable",
-							personal = "Repair using your funds",
-							guild = "Repair using guild funds"
-						}
-					},
-					ShowReorganizeBagsButton = {
-						name = "Show bag sort button",
-						desc = "If unchecked, the sort button will be hidden.",
-						order = 2,
-						type = "toggle"
-					}
-				}
-			}
-	  	}
+	  	args = configuration
 	} 
 end
 
-function WTweaks:OnEnable()
-	WTweaks:Main()
+function WTweaks:OnSettingsChanged(settings, groupName)
+end
+
+function WTweaks:LoadSharedMedia()
+	local fonts = WTweaks.Libs.SharedMedia:List("font")
+
+	WTweaks.Options = {
+		Fonts = {}
+	}
+	
+	for _, fontName in ipairs(fonts) do
+		WTweaks.Options.Fonts[fontName] = fontName
+	end
 end
 
 function WTweaks:InitConfig()
 	WTweaks.NativeEvents = {
 		-- MERCHANT_SHOW = WTweaks.OnMerchantOpened
 	}
-
-	WTweaks.Events = {
-		SetConfig = function(info, value)
-			WTweaks.DB.profile[info[#info]] = value
-			WTweaks:Main()
-		end,
-		GetConfig = function(info)
-			return WTweaks.DB.profile[info[#info]]
-		end
-	}
-
-	WTweaks.Config = {
-		profile = {
-			XPBarPoint = nil,
-			ShowXPBar = true,
-			ShowMicroBar = false,
-			ShowRestedXP = false,
-			ShowErrorText = false,
-			ShowReorganizeBagsButton = true,
-			AutoRepair = "disabled",
-			VendorJunk = "button"
-		}
-	}
 	
+	local configuration = WTweaks:GetConfig()
 	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Config)
-	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, WTweaks:GetConfig())
-	WTweaks.Frames.Config = WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
-end
+	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, configuration)
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
 
-
-function WTweaks:InitBagTray()
-	if WTweaks.BagTray ~= nil then
-		return
-	end
-
-	WTweaks.BagTray = {
-		Width = 0,
-		Margin = 4,
-		Integrations = {
-			VendorJunkButton = nil,
-			ReorganizeBagsButton = nil
-		},
-		GetCalculatedWidth = function()
-			local newWidth = 0
-			local visibleCount = 0
-			local previousElement = BagItemSearchBox
-
-			for k, frame in pairs(WTweaks.BagTray.Integrations) do
-				if frame ~= nil and frame:IsShown() then
-					newWidth = newWidth + frame:GetWidth()
-					visibleCount = visibleCount + 1
-					
-					frame:SetPoint("LEFT", previousElement, "RIGHT", WTweaks.BagTray.Margin, 0)
-					previousElement = frame
-				end
-			end
-
-			if visibleCount > 0 then
-				newWidth = newWidth + (WTweaks.BagTray.Margin * (visibleCount - 1))
-			end
-
-			WTweaks.BagTray.Width = newWidth
-			return newWidth
+	
+	for _, module in pairs(WTweaksModules) do
+		for groupName, group in pairs(module:GetConfig()) do
+			module:OnSettingsLoaded(WTweaks.DB.profile[groupName])
 		end
-	}
-	
-	local width, height = BagItemAutoSortButton:GetSize()
-	width = width - 6;
-	height = height - 6;
-
-	WTweaks.BagTray.Integrations.VendorJunkButton = WTweaks:CreateButton(ContainerFrameCombinedBags, "INTERFACE/Icons/inv_misc_coin_04", nil, nil, width, height, "Vendor Junk", "Clean all junk from your bags.")
-	WTweaks.BagTray.Integrations.VendorJunkButton:SetScript("OnClick", WTweaks.VendorJunk)
-	
-	WTweaks.BagTray.Integrations.ReorganizeBagsButton = WTweaks:CreateButton(ContainerFrameCombinedBags, "INTERFACE/Icons/INV_Pet_Broom", nil, nil, width, height, BAG_CLEANUP_BAGS, BAG_CLEANUP_BAGS_DESCRIPTION)
-	WTweaks.BagTray.Integrations.ReorganizeBagsButton:SetScript("OnClick", BagItemAutoSortButton:GetScript("OnClick"))
+	end
 end
 
 function WTweaks:OnInitialize()
 	WTweaks:RegisterChatCommand("edit",  "OpenEditMode")
 	WTweaks:RegisterChatCommand("tweaks", "OpenConfig")
-	
+
 	WTweaks.Libs = {
 		AceGUI = LibStub("AceGUI-3.0"),
 		AceDB = LibStub("AceDB-3.0"),
 		AceConfig = LibStub("AceConfig-3.0"),
-		AceCfgDialog = LibStub("AceConfigDialog-3.0")
+		AceCfgDialog = LibStub("AceConfigDialog-3.0"),
+		SharedMedia = LibStub("LibSharedMedia-3.0")
 	}
 
-	WTweaks.BlizzFuncs = {}
 	WTweaks.Frames = {
 		Main = CreateFrame("FRAME", AddonName)
 	}
-
+	
+	WTweaks.BlizzFuncs = {}
+	WTweaks:LoadSharedMedia()
 	WTweaks:InitConfig()
-
-	for eventName in pairs(WTweaks.NativeEvents) do
-		WTweaks.Frames.Main:RegisterEvent(eventName);
-	end
-	
-	WTweaks.Frames.Main:SetScript("OnEvent", function(frame, event, ...)
-		WTweaks.NativeEvents[event](...)
-	end)
+	WTweaks:InitModules()
 end
 
-function WTweaks:Main()
-	WTweaks:InitBagTray()
-	WTweaks:UpdateMicroBarState()
-	WTweaks:UpdateXPBarState()
-	WTweaks:UpdateErrorTextState()
-	WTweaks:UpdateVendorJunkButtonState()
-	WTweaks:UpdateRestedXPIndicatorState()
-	WTweaks:UpdateReorganizeBagsButtonState()
-end
-
-function WTweaks:UpdateXPBarState()
-	WTweaks:LoadFrame(StatusTrackingBarManager)
-	WTweaks:MakeFrameDraggable(StatusTrackingBarManager)
-
-	if self.DB.profile.ShowXPBar then
-		StatusTrackingBarManager:Show()
-	else
-		StatusTrackingBarManager:Hide()
+function WTweaks:InitModules()	
+	for _, mod in pairs(WTweaksModules) do
+		mod:OnModuleRegistered(WTweaks)
 	end
 end
 
-function WTweaks:UpdateReorganizeBagsButtonState()
-	WTweaks:HookSecure(BagItemAutoSortButton, "Show", BagItemAutoSortButton.Hide)
-	
-	if WTweaks.DB.profile.ShowReorganizeBagsButton then
-		WTweaks.BagTray.Integrations.ReorganizeBagsButton:Show()
-	else
-		WTweaks.BagTray.Integrations.ReorganizeBagsButton:Hide()
-	end
+function WTweaks:OpenEditMode()
+	EditModeManagerFrame:Show()
 end
 
-function WTweaks:UpdateMicroBarState()
-	-- Repositions the bag frames to appear in the bottom-right corner.
-	WTweaks:HookSecure(_G, "UpdateContainerFrameAnchors", function()
-		if not self.DB.profile.ShowMicroBar then
-			local bagFrame = WTweaks:GetBagFrame()
-			
-			bagFrame:ClearAllPoints()
-			bagFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -3, 3)
-		end
-	end)
-
-	if not self.DB.profile.ShowMicroBar then
-		MicroButtonAndBagsBar:Hide()
-
-		-- Reposition the Queue indicator button.
-		QueueStatusButton:SetParent(UIParent)
-		QueueStatusButton:ClearAllPoints()
-		QueueStatusButton:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -3, 3)
-	else
-		MicroButtonAndBagsBar:Show()
-		
-		QueueStatusButton:SetParent(MicroButtonAndBagsBar)
-		QueueStatusButton:ClearAllPoints()
-		QueueStatusButton:SetPoint("BOTTOMLEFT", MicroButtonAndBagsBar, "BOTTOMLEFT", -45, 0)
-	end
-end
-
-function WTweaks:UpdateErrorTextState()
-	if not self.DB.profile.ShowErrorText then
-		UIErrorsFrame:Hide()
-	else
-		UIErrorsFrame:Show()
-	end
-end
-
-function WTweaks:UpdateVendorJunkButtonState()
-	WTweaks:HookSecure(MerchantFrame, "Show", WTweaks.OnMerchantOpened)
-
-	WTweaks:HookSecure(ContainerFrameCombinedBags, "SetSearchBoxPoint", function()
-		WTweaks.BagTray.Margin = 8
-		BagItemSearchBox:SetWidth(BagItemSearchBox:GetWidth() - WTweaks.BagTray.GetCalculatedWidth() + 20)
-	end)
-
-	WTweaks:HookSecure(ContainerFrame1, "SetSearchBoxPoint", function()
-		WTweaks.BagTray.Margin = 4
-		BagItemSearchBox:SetWidth(BagItemSearchBox:GetWidth() - WTweaks.BagTray.GetCalculatedWidth() + 26)
-	end)
-
-	WTweaks:HookSecure(ContainerFrameCombinedBags, "Show", WTweaks.OnBackpackOpened)
-	WTweaks:HookSecure(ContainerFrame1, "Show", WTweaks.OnBackpackOpened)
-	
-	if WTweaks.DB.profile.VendorJunk == "disabled" or WTweaks.DB.profile.VendorJunk == "auto" then
-		WTweaks.BagTray.Integrations.VendorJunkButton:Hide()
-	else
-		WTweaks.BagTray.Integrations.VendorJunkButton:Show()
-	end
-end
-
-function WTweaks:UpdateRestedXPIndicatorState()
-	if not self.DB.profile.ShowRestedXP then
-		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(0)
-	else
-		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(1)
-	end
+function WTweaks:OpenConfig(input)
+	InterfaceOptionsFrame_OpenToCategory(AddonName)
 end
 
 function WTweaks:IsFuncSaved(frame, funcName)
@@ -314,74 +148,14 @@ function WTweaks:RestoreFunc(frame, funcName)
 	end
 end
 
-function WTweaks:OpenEditMode()
-	EditModeManagerFrame:Show()
-end
-
-function WTweaks:OpenConfig(input)
-	InterfaceOptionsFrame_OpenToCategory(AddonName)
-end
-
-function WTweaks:VendorJunk()
-	if not MerchantFrame:IsShown() then
-		print("|cFFFFFF00You must be speaking to a merchant.|r")
-		return
-	end
-
-    for bagId = 0, NUM_BAG_SLOTS do
-		local slotCount = GetContainerNumSlots(bagId)
-
-        for slotId = 1, slotCount do
-			local itemQuality = select(4, GetContainerItemInfo(bagId, slotId))
-			
-			if itemQuality == 0 then
-				UseContainerItem(bagId, slotId)
-			end
-        end
-    end
-end
-
-function WTweaks:RepairGear()
-	local repairAllCost, canRepair = GetRepairAllCost()
-
-	if repairAllCost > 0 and canRepair then
-		if CanGuildBankRepair() and WTweaks.DB.profile.AutoRepair == "guild" then
-			RepairAllItems(1)
-		elseif WTweaks.DB.profile.AutoRepair == "personal" and repairAllCost <= GetMoney() then
-			RepairAllItems()
-		end
-
-		local didRepair = select(1, GetRepairAllCost()) == 0
-
-		if didRepair then
-			print("|cFFFFFF00Gear repaired: |r" .. GetMoneyString(repairAllCost))
-		end
-	end
-end
-
-function WTweaks:GetBagFrame()
-	return ContainerFrameSettingsManager:IsUsingCombinedBags() and ContainerFrameCombinedBags or ContainerFrame1
-end
-
-function WTweaks:OnBackpackOpened()
-	local bagFrame = WTweaks:GetBagFrame()
-	
-	WTweaks.BagTray.Margin = isCombined and 8 or 4
-	WTweaks.BagTray.Integrations.VendorJunkButton:SetParent(bagFrame)
-	WTweaks.BagTray.Integrations.ReorganizeBagsButton:SetParent(bagFrame)
-end
-
-function WTweaks:OnMerchantOpened()
-	if WTweaks.DB.profile.VendorJunk == "auto" or WTweaks.DB.profile.VendorJunk == "autoButton" then
-		WTweaks:VendorJunk()
-	end
-
-	if WTweaks.DB.profile.AutoRepair ~= "disabled" then
-		WTweaks:RepairGear()
-	end
-end
-
 function WTweaks:HookSecure(frame, funcName, func)
+	-- Shift arguments
+	if func == nil then
+		func = funcName
+		funcName = frame
+		frame = _G
+	end
+
 	-- Ensure no duplicate hooks are created.
 	if not WTweaks:IsFuncSaved(frame, funcName) then
 		hooksecurefunc(frame, funcName, func)
@@ -465,3 +239,9 @@ function WTweaks:CreateButton(parent, normalTexture, pushTexture, hoverTexture, 
 	btn:SetScript("OnLeave", GameTooltip_Hide)
 	return btn
 end
+
+function WTweaks:GetBagFrame()
+	return ContainerFrameSettingsManager:IsUsingCombinedBags() and ContainerFrameCombinedBags or ContainerFrame1
+end
+
+function WTweaks:NoOp() end

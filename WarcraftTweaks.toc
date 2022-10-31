@@ -7,3 +7,6 @@
 
 embeds.xml
 Main.lua
+modules/General.lua
+modules/Bag.lua
+modules/Chat.lua

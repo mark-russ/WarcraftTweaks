@@ -4,25 +4,19 @@ local Module = {
     Name = "Bags",
     Settings = nil
 }
-
 table.insert(WTweaksModules, Module)
 
-function Module:OnSettingsChanged(settings, groupName)
-    Module.Settings = settings
-    Module:Update()
-end
-
-function Module:OnSettingsLoaded(settings, groupName)
-    Module.Settings = settings
+function Module:OnSettingChanged(settings, groupName)
+    Module:Init()
 end
 
 function Module:OnModuleRegistered(main)
     WTweaks = main
 	Module:InitBagTray()
-    Module:Update()
+    Module:Init()
 end
 
-function Module:Update()
+function Module:Init()
 	Module:UpdateVendorJunkButtonState()
 	Module:UpdateReorganizeBagsButtonState()
 end
@@ -41,12 +35,12 @@ function Module:GetConfig()
                     order = 0,
                     type = "select",
                     values = {
-                        disabled = "Disable",
+                        disabled = "Disabled",
                         button = "Button only",
                         autoButton = "Automatic + button",
                         auto = "Automatically"
                     },
-                    default = disabled
+                    default = "disabled"
                 },
                 AutoRepair = {
                     name = "Auto Repair",
@@ -54,11 +48,11 @@ function Module:GetConfig()
                     order = 1,
                     type = "select",
                     values = {
-                        disabled = "Disable",
+                        disabled = "Disabled",
                         personal = "Repair using your funds",
                         guild = "Repair using guild funds"
                     },
-                    default = disabled
+                    default = "disabled"
                 },
                 ShowReorganizeBagsButton = {
                     name = "Show bag sort button",

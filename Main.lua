@@ -1,7 +1,7 @@
 local AddonName, Vars = ...
 local WTweaks = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
 local DBName = "WarcraftTweaks"
-
+WTweaks.NativeEvents = {}
 WTweaksModules = {}
 
 function WTweaks:GetConfig()
@@ -23,22 +23,40 @@ function WTweaks:GetConfig()
 
 		if not optionGroup.set then
 			local module = optionGroup["module"]
-			optionGroup.set = function(info, value)
-				WTweaks.DB.profile[groupName][info[#info]] = value
+			optionGroup.set = function(info, ...)
+				local name = info[#info]
 
-				module:OnSettingsChanged(WTweaks.DB.profile[groupName], groupName)
-				WTweaks:OnSettingsChanged(WTweaks.DB.profile[groupName], groupName)
+				if configuration[groupName].args[name].type == "color" then
+					WTweaks.DB.profile[groupName][name] = { ... }
+				else
+					WTweaks.DB.profile[groupName][name] = ...
+				end
+
+				module.Settings = WTweaks.DB.profile[groupName]
+				module:OnSettingChanged(groupName, name, WTweaks.DB.profile[groupName][name])
+				WTweaks:OnSettingsChanged(groupName, name, WTweaks.DB.profile[groupName][name])
 			end
 			
 			optionGroup.get = function(info)
-				return WTweaks.DB.profile[groupName][info[#info]]
+				local name = info[#info]
+
+				if configuration[groupName].args[name].type == "color" then
+					return unpack(WTweaks.DB.profile[groupName][name])
+				else
+					return WTweaks.DB.profile[groupName][info[#info]]
+				end
 			end
 		end
 
 		optionGroup["module"] = nil
 
 		for name, option in pairs(optionGroup.args) do
-			defaults[groupName][name] = option.default
+			if type(option.default) == 'function' then
+				defaults[groupName][name] = option.default()
+			else
+				defaults[groupName][name] = option.default
+			end
+
 			option.default = nil
 		end
 	end
@@ -53,38 +71,7 @@ function WTweaks:GetConfig()
 	} 
 end
 
-function WTweaks:OnSettingsChanged(settings, groupName)
-end
-
-function WTweaks:LoadSharedMedia()
-	local fonts = WTweaks.Libs.SharedMedia:List("font")
-
-	WTweaks.Options = {
-		Fonts = {}
-	}
-	
-	for _, fontName in ipairs(fonts) do
-		WTweaks.Options.Fonts[fontName] = fontName
-	end
-end
-
-function WTweaks:InitConfig()
-	WTweaks.NativeEvents = {
-		-- MERCHANT_SHOW = WTweaks.OnMerchantOpened
-	}
-	
-	local configuration = WTweaks:GetConfig()
-	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Config)
-	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, configuration)
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
-
-	
-	for _, module in pairs(WTweaksModules) do
-		for groupName, group in pairs(module:GetConfig()) do
-			module:OnSettingsLoaded(WTweaks.DB.profile[groupName])
-		end
-	end
-end
+function WTweaks:OnSettingsChanged(settings, groupName) end
 
 function WTweaks:OnInitialize()
 	WTweaks:RegisterChatCommand("edit",  "OpenEditMode")
@@ -95,7 +82,8 @@ function WTweaks:OnInitialize()
 		AceDB = LibStub("AceDB-3.0"),
 		AceConfig = LibStub("AceConfig-3.0"),
 		AceCfgDialog = LibStub("AceConfigDialog-3.0"),
-		SharedMedia = LibStub("LibSharedMedia-3.0")
+		SharedMedia = LibStub("LibSharedMedia-3.0"),
+		LSM = LibStub("AceGUISharedMediaWidgets-1.0") 
 	}
 
 	WTweaks.Frames = {
@@ -105,13 +93,49 @@ function WTweaks:OnInitialize()
 	WTweaks.BlizzFuncs = {}
 	WTweaks:LoadSharedMedia()
 	WTweaks:InitConfig()
-	WTweaks:InitModules()
-end
-
-function WTweaks:InitModules()	
+	
+	-- Notify each module that everything's good.
 	for _, mod in pairs(WTweaksModules) do
 		mod:OnModuleRegistered(WTweaks)
 	end
+
+	-- As events happen, notify.
+	WTweaks.Frames.Main:SetScript("OnEvent", function(self, event, ...)
+		for _, callback in pairs(WTweaks.NativeEvents[event]) do
+			callback(...)
+		end
+	end)
+	
+end
+
+function WTweaks:LoadSharedMedia()
+	WTweaks.Options = {
+		Fonts = WTweaks.Libs.SharedMedia:HashTable("font"),
+		Bars = WTweaks.Libs.SharedMedia:HashTable("statusbar")
+	}
+end
+
+function WTweaks:InitConfig()
+	local configuration = WTweaks:GetConfig()
+	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Config)
+	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, configuration)
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
+
+	-- Set each module's "Settings" object.
+	for _, module in pairs(WTweaksModules) do
+		for groupName, group in pairs(module:GetConfig()) do
+			module.Settings = WTweaks.DB.profile[groupName]
+		end
+	end
+end
+
+function WTweaks:HookEvent(eventName, callbackFunc)
+	if WTweaks.NativeEvents[eventName] == nil then
+		WTweaks.NativeEvents[eventName] = {}
+		WTweaks.Frames.Main:RegisterEvent(eventName)
+	end
+
+	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
 end
 
 function WTweaks:OpenEditMode()
@@ -242,6 +266,37 @@ end
 
 function WTweaks:GetBagFrame()
 	return ContainerFrameSettingsManager:IsUsingCombinedBags() and ContainerFrameCombinedBags or ContainerFrame1
+end
+
+function WTweaks:Ternary(condition, trueResult, falseResult)
+	if condition then
+		return trueResult
+	else
+		return falseResult
+	end
+end
+
+function WTweaks:GetStatusBar(frame)
+    local statusBar = frame:GetStatusBarTexture()
+
+    return {
+        texture = statusBar:GetTexture(),
+        atlas = statusBar:GetAtlas()
+    }
+end
+
+function WTweaks:SetStatusBar(frame, statusBar)
+    frame:SetStatusBarTexture(statusBar.texture)
+    frame:GetStatusBarTexture():SetAtlas(statusBar.atlas)
+end
+
+function WTweaks:ColorArrayToRGBA(color)
+    return {
+        r = color[1],
+        g = color[2],
+        b = color[3],
+        a = color[4] or 1
+    }
 end
 
 function WTweaks:NoOp() end

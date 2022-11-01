@@ -6,21 +6,16 @@ local Module = {
 
 table.insert(WTweaksModules, Module)
 
-function Module:OnSettingsChanged(settings, groupName)
-    Module.Settings = settings
-    Module:Refresh()
-end
-
-function Module:OnSettingsLoaded(settings, groupName)
-    Module.Settings = settings
+function Module:OnSettingChanged(settings, groupName)
+    Module:Init()
 end
 
 function Module:OnModuleRegistered(main)
     WTweaks = main
-    Module:Refresh()
+    Module:Init()
 end
 
-function Module:Refresh()
+function Module:Init()
 	Module:UpdateMicroBarState()
 	Module:UpdateXPBarState()
 	Module:UpdateErrorTextState()

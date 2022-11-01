@@ -1,28 +1,64 @@
 local WTweaks
 
 local Module = {
-    Name = "Chat"
+    Name = "Chat",
+	IsHistoryLoaded = false,
+	Enabled = false
 }
 
 table.insert(WTweaksModules, Module)
 
-function Module:OnSettingsChanged(settings, groupName)
-    Module.Settings = settings
-    Module:Refresh()
-end
-
-function Module:OnSettingsLoaded(settings, groupName)
-    Module.Settings = settings
+function Module:OnSettingChanged(settings, groupName)
+    Module:Init()
 end
 
 function Module:OnModuleRegistered(main)
     WTweaks = main
-    Module:Refresh()
+
+	Module:LoadChatHistory()
+    Module:Init()
+
+	WTweaks:HookEvent("PLAYER_LEAVING_WORLD", Module.OnPlayerDisconnect)
 end
 
-function Module:Refresh()
-	Module:UpdateChatHistory()
+function Module:Init()
+	Module:HookChatEvents()
 	Module:UpdateChatSettings()
+end
+
+function Module:OnPlayerDisconnect()
+	-- If there are more saved messages in the history table than allowed, purge them.
+	for i = 1, NUM_CHAT_WINDOWS do
+		local amountToDelete = getn(Module.Settings.History[i]) - Module.Settings.MaxHistoryCount
+
+		for j = 1, amountToDelete do
+			tremove(Module.Settings.History[i], 1)
+		end
+	end
+end
+
+function Module:LoadChatHistory()
+	if Module.Settings.History == nil then
+		Module.Settings.History = {}
+	end
+
+	if Module.Settings.MaxHistoryCount > 0 and Module.IsHistoryLoaded == false then
+		-- Populate the chat windows with the chat history.
+		for i = 1, NUM_CHAT_WINDOWS do
+			local frameName = "ChatFrame"..i
+
+			if Module.Settings.History[i] == nil then
+				Module.Settings.History[i] = {}
+			end
+
+			-- Add history messages to chat frame.
+			for _, chatMessage in pairs(Module.Settings.History[i]) do
+				_G[frameName]:AddMessage(unpack(chatMessage))
+			end
+		end
+
+		Module.IsHistoryLoaded = true
+	end
 end
 
 function Module:GetConfig()
@@ -35,6 +71,7 @@ function Module:GetConfig()
 			args = {
 				ChatFont = {
 					name = "Font",
+                    dialogControl = "LSM30_Font",
 					desc = "Changes the font of all chat frames.",
 					order = 0,
 					type = "select",
@@ -55,14 +92,34 @@ function Module:GetConfig()
 					order = 2,
 					type = "toggle",
 					default = false
+				},
+				MaxHistoryCount = {
+					name = "Maximum message history",
+					desc = "Maximum amount of messages to keep in history.",
+					order = 3,
+					type = "range",
+					default = 50,
+					step = 1,
+					min = 0,
+					max = 300
 				}
 			}
 		}
     }
 end
 
-function Module:UpdateChatHistory()
-	
+function Module:HookChatEvents()
+	if Module.Settings.MaxHistoryCount == 0 then
+		return
+	end
+
+	for i = 1, NUM_CHAT_WINDOWS do
+		local frameName = "ChatFrame"..i
+		
+		WTweaks:HookSecure(_G[frameName], "AddMessage", function(frame, ...)
+			tinsert(Module.Settings.History[i], { ... })
+		end)
+	end
 end
 
 function Module:UpdateChatSettings()

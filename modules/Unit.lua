@@ -103,17 +103,22 @@ function Module:GetConfig()
 					default = { 0.0, 0.0, 0.8, 0.8 }
                 },
 
-                TestColor = {
-					name = "Power Color",
-					desc = "Sets the color of the power bar.",
-					type = "color",
-                    hasAlpha = true,
-					default = { 0.0, 0.0, 0.8, 0.8 }
+
+                StatusBarTexture = {
+					name = "Status Bar Texture",
+                    dialogControl = "LSM30_Statusbar",
+					desc = "Sets the texture of the XP/Reputation Bar.",
+					type = "select",
+					values = function()
+						return WTweaks.Options.Bars
+					end,
+					default = nil
                 },
 			}
 		}
     }
-end
+end 
+--/run StatusTrackingBarManager.BottomBarFrameTexture:Show()
 table.insert(WTweaksModules, Module)
 
 function Module:OnSettingChanged(settings, groupName)
@@ -127,6 +132,21 @@ function Module:OnModuleRegistered(main)
 end
 
 function Module:Init()
+	for _, bar in ipairs(StatusTrackingBarManager.bars) do
+        local z = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.HealthBarTexture)
+        --local tName = "Interface\\TargetingFrame\\UI-StatusBar"
+
+        local statusBar = bar.StatusBar
+        --local sbT = statusBar:GetStatusBarTexture()
+        --local abT = statusBar:GetStatusBarTexture():GetAtlas()
+
+        --local atlas = statusBar:GetStatusBarTexture(tName):GetAtlas()
+        --/run StatusTrackingBarManager.bars[1].StatusBar.BarTexture
+        statusBar.BarTexture:SetTexture(z)
+        --statusBar:SetStatusBarTexture(tName)
+        --statusBar:GetStatusBarTexture(tName):SetMask()
+	end
+
 	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Font)
     local fontHeight = 10
     local fontOutline = Module.Settings.ShowFontOutline and "OUTLINE" or ""

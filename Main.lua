@@ -4,73 +4,6 @@ local DBName = "WarcraftTweaks"
 WTweaks.NativeEvents = {}
 WTweaksModules = {}
 
-function WTweaks:GetConfig()
-	local configuration = {}
-	local defaults = {}
-	
-	for _, module in pairs(WTweaksModules) do
-		local moduleConfig = module:GetConfig()
-		
-		for groupName, group in pairs(moduleConfig) do
-			group["module"] = module
-			configuration[groupName] = group
-		end
-	end
-	
-	-- Remove the "default" value from the options since AceConfig doesn't understand them.
-	for groupName, optionGroup in pairs(configuration) do
-		defaults[groupName] = {}
-
-		if not optionGroup.set then
-			local module = optionGroup["module"]
-			optionGroup.set = function(info, ...)
-				local name = info[#info]
-
-				if configuration[groupName].args[name].type == "color" then
-					WTweaks.DB.profile[groupName][name] = { ... }
-				else
-					WTweaks.DB.profile[groupName][name] = ...
-				end
-
-				module.Settings = WTweaks.DB.profile[groupName]
-				module:OnSettingChanged(groupName, name, WTweaks.DB.profile[groupName][name])
-				WTweaks:OnSettingsChanged(groupName, name, WTweaks.DB.profile[groupName][name])
-			end
-			
-			optionGroup.get = function(info)
-				local name = info[#info]
-
-				if configuration[groupName].args[name].type == "color" then
-					return unpack(WTweaks.DB.profile[groupName][name])
-				else
-					return WTweaks.DB.profile[groupName][info[#info]]
-				end
-			end
-		end
-
-		optionGroup["module"] = nil
-
-		for name, option in pairs(optionGroup.args) do
-			if type(option.default) == 'function' then
-				defaults[groupName][name] = option.default()
-			else
-				defaults[groupName][name] = option.default
-			end
-
-			option.default = nil
-		end
-	end
-
-	WTweaks.Config = {
-		profile = defaults
-	}
-
-	return {
-		type = "group",
-	  	args = configuration
-	} 
-end
-
 function WTweaks:OnSettingsChanged(settings, groupName) end
 
 function WTweaks:OnInitialize()
@@ -115,18 +48,81 @@ function WTweaks:LoadSharedMedia()
 	}
 end
 
-function WTweaks:InitConfig()
-	local configuration = WTweaks:GetConfig()
-	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Config)
-	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, configuration)
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
+function WTweaks:GetConfig()
+	local configuration = {}
 
-	-- Set each module's "Settings" object.
+	-- Merge configuration.
 	for _, module in pairs(WTweaksModules) do
-		for groupName, group in pairs(module:GetConfig()) do
-			module.Settings = WTweaks.DB.profile[groupName]
+		local moduleConfig = module:GetConfig()
+
+		for groupName, group in pairs(moduleConfig) do
+			configuration[groupName] = group
 		end
 	end
+
+	WTweaks.Configuration = {
+		type = "group",
+		args = configuration
+	}
+	
+	local defaults = {}
+	WTweaks:ProcessGroup(WTweaks.Configuration, defaults, nil)
+
+	WTweaks.Defaults = {
+		profile = defaults
+	}
+end
+
+function WTweaks:ProcessGroup(group, defaults, groupName)
+	for optionName, option in pairs(group.args) do
+		if option.type == "group" then
+			defaults[optionName] = {}
+			WTweaks:ProcessGroup(option, defaults[optionName], optionName)
+		else
+			-- Copy default over and remove it.
+			local defaultValue = option.default
+			defaults[optionName] = defaultValue
+			option.default = nil
+		end
+	end
+end
+
+function WTweaks:HookOptions(group, defaults, groupName)
+	for optionName, option in pairs(group.args) do
+		if option.type == "group" then
+			WTweaks:HookOptions(option, defaults[optionName], optionName)
+		else
+			option.set = function(info, ...)
+				local name = info[#info]
+				defaults[name] = ...
+			end
+			
+			option.get = function(info)
+				local name = info[#info]
+				return defaults[name]
+			end
+		end
+	end
+end
+
+function WTweaks:InitConfig()
+	WTweaks:GetConfig()
+	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults)
+	WTweaks:HookOptions(WTweaks.Configuration, WTweaks.DB.profile, nil)
+
+ 	for _, module in pairs(WTweaksModules) do
+ 		local moduleConfig = module:GetConfig()
+		module.Settings = WTweaks.DB.profile
+ 	end
+
+	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, WTweaks.Configuration)
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
+	
+	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil, "general")
+	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Bags", AddonName, "bags")
+	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Chat", AddonName, "chat")
+
+	--WTweaks:PrintTable(WTweaks.DB.profile)
 end
 
 function WTweaks:HookEvent(eventName, callbackFunc)
@@ -297,6 +293,24 @@ function WTweaks:ColorArrayToRGBA(color)
         b = color[3],
         a = color[4] or 1
     }
+end
+
+function WTweaks:PrintTable(table, depth)
+	local depth = (depth or -5) + 5 
+	local indentation = string.rep(" ", depth)
+	for elementName, element in pairs(table) do
+		local elementType = type(element)
+
+		if elementType == "table" then
+			print(indentation .. elementName .. " {")
+			WTweaks:PrintTable(element, depth)
+			print(indentation .. "}")
+		else -- tostring(element)
+			local elementValue = WTweaks:Ternary(elementType == "string", "\"" .. tostring(element) .. "\"", tostring(element))
+			
+			print(indentation .. elementName .. " = " .. elementValue)
+		end
+	end
 end
 
 function WTweaks:NoOp() end

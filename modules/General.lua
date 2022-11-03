@@ -63,7 +63,7 @@ function Module:UpdateXPBarState()
 	WTweaks:LoadFrame(StatusTrackingBarManager)
 	WTweaks:MakeFrameDraggable(StatusTrackingBarManager)
 
-	if Module.Settings.ShowXPBar then
+	if Module.Settings.general.ShowXPBar then
 		StatusTrackingBarManager:Show()
 	else
 		StatusTrackingBarManager:Hide()
@@ -73,7 +73,7 @@ end
 function Module:UpdateMicroBarState()
 	-- Repositions the bag frames to appear in the bottom-right corner.
 	WTweaks:HookSecure("UpdateContainerFrameAnchors", function()
-		if not Module.Settings.ShowMicroBar then
+		if not Module.Settings.general.ShowMicroBar then
 			local bagFrame = WTweaks:GetBagFrame()
 			
 			bagFrame:ClearAllPoints()
@@ -81,7 +81,7 @@ function Module:UpdateMicroBarState()
 		end
 	end)
 
-	if not Module.Settings.ShowMicroBar then
+	if not Module.Settings.general.ShowMicroBar then
 		MicroButtonAndBagsBar:Hide()
 		QueueStatusButton:SetParent(UIParent)
 		QueueStatusButton:ClearAllPoints()
@@ -95,7 +95,7 @@ function Module:UpdateMicroBarState()
 end
 
 function Module:UpdateErrorTextState()
-	if not Module.Settings.ShowErrorText then
+	if not Module.Settings.general.ShowErrorText then
 		UIErrorsFrame:Hide()
 	else
 		UIErrorsFrame:Show()
@@ -103,7 +103,7 @@ function Module:UpdateErrorTextState()
 end
 
 function Module:UpdateRestedXPIndicatorState()
-	if not Module.Settings.ShowRestedXP then
+	if not Module.Settings.general.ShowRestedXP then
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(0)
 	else
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(1)

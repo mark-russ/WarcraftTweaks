@@ -25,7 +25,7 @@ local Module = {
 
 function Module:GetConfig()
     return {
-		unit = {
+		Unit = {
 			type = "group",
 			name = "Unit Frames",
 			order = 2,
@@ -34,7 +34,7 @@ function Module:GetConfig()
 				Font = {
 					name = "Font",
                     dialogControl = "LSM30_Font",
-					desc = "Changes the font of the player and target frames.",
+					desc = "Affects player, target and focus frames.",
 					type = "select",
 					values = function()
 						return WTweaks.Options.Fonts
@@ -42,83 +42,111 @@ function Module:GetConfig()
 				},
 				ShowFontOutline = {
 					name = "Font Outline",
-					desc = "If checked, adds an outline to player and target frames.",
+					desc = "Affects player, target and focus frames.",
 					type = "toggle",
 					default = false
 				},
-
-
-                IsHealthStyled = {
-					name = "Customize Health Bars",
-					desc = "If checked, health bars will be styled",
-					type = "toggle",
-					default = false
-                },
-				HealthBarTexture = {
-					name = "Health Bar",
-                    dialogControl = "LSM30_Statusbar",
-					desc = "Sets the texture of healthbars",
-					type = "select",
-					values = function()
-						return WTweaks.Options.Bars
-					end,
-					default = nil
+				FontSize = {
+					name = "Font Size",
+					desc = "Affects player, target and focus frames.",
+					order = 3,
+					type = "range",
+					default = 10,
+					step = 1,
+					min = 6,
+					max = 14
 				},
-                HealthBarColor = {
-					name = "Health Color",
-					desc = "Sets the color of the health bar.",
-					type = "color",
-                    hasAlpha = true,
-					default = { 0.0, 0.8, 0.0, 0.8 }
+
+                Health = {
+                    type = "group",
+                    name = "Health",
+                    order = 2,
+                    inline = true,
+                    args = {
+                        IsEnabled = {
+                            name = "Customize Health Bars",
+                            desc = "If checked, health bars will be styled",
+                            type = "toggle",
+                            default = false
+                        },
+                        BarTexture = {
+                            name = "Health Bar",
+                            dialogControl = "LSM30_Statusbar",
+                            desc = "Sets the texture of healthbars",
+                            type = "select",
+                            values = function()
+                                return WTweaks.Options.Bars
+                            end,
+                            default = nil,
+                            disabled = function()
+                                return not Module.Settings.Unit.Health.IsEnabled
+                            end
+                        },
+                        BarColor = {
+                            name = "Health Color",
+                            desc = "Sets the color of the health bar.",
+                            type = "color",
+                            hasAlpha = true,
+                            default = { 0.0, 0.8, 0.0, 0.8 },
+                            disabled = function()
+                                return not Module.Settings.Unit.Health.IsEnabled
+                            end
+                        }
+                    }
                 },
 
 
-                IsPowerStyled = {
-					name = "Customize Power Bars",
-					desc = "If checked, power bars will be styled",
-					type = "toggle",
-					default = false
-                },
-				PowerBarTexture = {
-					name = "Power Bar",
-                    dialogControl = "LSM30_Statusbar",
-					desc = "Sets the texture of the power bar.",
-					type = "select",
-					values = function()
-						return WTweaks.Options.Bars
-					end,
-					default = nil
-				},
-                UsePowerClassColor = {
-					name = "Use Class Power",
-					desc = "If checked, power bars will use the class colors instead of custom color.",
-					type = "toggle",
-					default = true
-                },
-                PowerBarColor = {
-					name = "Power Color",
-					desc = "Sets the color of the power bar.",
-					type = "color",
-                    hasAlpha = true,
-					default = { 0.0, 0.0, 0.8, 0.8 }
-                },
-
-
-                StatusBarTexture = {
-					name = "Status Bar Texture",
-                    dialogControl = "LSM30_Statusbar",
-					desc = "Sets the texture of the XP/Reputation Bar.",
-					type = "select",
-					values = function()
-						return WTweaks.Options.Bars
-					end,
-					default = nil
-                },
+                Power = {
+                    type = "group",
+                    name = "Power",
+                    order = 2,
+                    inline = true,
+                    args = {
+                        IsEnabled = {
+                            name = "Customize Power Bars",
+                            desc = "If checked, power bars will be styled",
+                            type = "toggle",
+                            default = false
+                        },
+                        BarTexture = {
+                            name = "Power Bar",
+                            dialogControl = "LSM30_Statusbar",
+                            desc = "Sets the texture of the power bar.",
+                            type = "select",
+                            values = function()
+                                return WTweaks.Options.Bars
+                            end,
+                            default = nil,
+                            disabled = function()
+                                return not Module.Settings.Unit.Power.IsEnabled
+                            end
+                        },
+                        UseClassColor = {
+                            name = "Use Class Power",
+                            desc = "If checked, power bars will use the class colors instead of custom color.",
+                            type = "toggle",
+                            default = true,
+                            disabled = function()
+                                return not Module.Settings.Unit.Power.IsEnabled
+                            end
+                        },
+                        BarColor = {
+                            name = "Power Color",
+                            desc = "Sets the color of the power bar.",
+                            type = "color",
+                            hasAlpha = true,
+                            default = { 0.0, 0.0, 0.8, 0.8 },
+                            disabled = function()
+                                return not Module.Settings.Unit.Power.IsEnabled or not Module.Settings.Unit.Power.UseClassColor
+                            end
+                        }
+                    }
+                }
 			}
 		}
     }
 end 
---/run StatusTrackingBarManager.BottomBarFrameTexture:Show()
+
 table.insert(WTweaksModules, Module)
 
 function Module:OnSettingChanged(settings, groupName)
@@ -132,36 +160,21 @@ function Module:OnModuleRegistered(main)
 end
 
 function Module:Init()
-	for _, bar in ipairs(StatusTrackingBarManager.bars) do
-        local z = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.HealthBarTexture)
-        --local tName = "Interface\\TargetingFrame\\UI-StatusBar"
+	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Unit.Font)
+    local fontHeight = Module.Settings.Unit.FontSize
+    local fontOutline = Module.Settings.Unit.ShowFontOutline and "OUTLINE" or ""
 
-        local statusBar = bar.StatusBar
-        --local sbT = statusBar:GetStatusBarTexture()
-        --local abT = statusBar:GetStatusBarTexture():GetAtlas()
-
-        --local atlas = statusBar:GetStatusBarTexture(tName):GetAtlas()
-        --/run StatusTrackingBarManager.bars[1].StatusBar.BarTexture
-        statusBar.BarTexture:SetTexture(z)
-        --statusBar:SetStatusBarTexture(tName)
-        --statusBar:GetStatusBarTexture(tName):SetMask()
-	end
-
-	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Font)
-    local fontHeight = 10
-    local fontOutline = Module.Settings.ShowFontOutline and "OUTLINE" or ""
-
-	Module.UnitFrames.Health.Enabled = Module.Settings.IsHealthStyled
-    Module.UnitFrames.Health.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.HealthBarTexture)
-    Module.UnitFrames.Health.Color = WTweaks:ColorArrayToRGBA(Module.Settings.HealthBarColor)
+	Module.UnitFrames.Health.Enabled = Module.Settings.Unit.Health.IsEnabled
+    Module.UnitFrames.Health.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.Unit.Health.BarTexture)
+    Module.UnitFrames.Health.Color = WTweaks:ColorArrayToRGBA(Module.Settings.Unit.Health.BarColor)
 
     if Module.UnitFrames.Health.BlizzardTexture == nil then
         Module.UnitFrames.Health.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameHealthBar)
     end
 
-    Module.UnitFrames.Power.Enabled = Module.Settings.IsPowerStyled
-    Module.UnitFrames.Power.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.PowerBarTexture)
-    Module.UnitFrames.Power.Color = WTweaks:Ternary(Module.Settings.UsePowerClassColor, nil, WTweaks:ColorArrayToRGBA(Module.Settings.PowerBarColor))
+    Module.UnitFrames.Power.Enabled = Module.Settings.Unit.Power.IsEnabled
+    Module.UnitFrames.Power.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.Unit.Power.BarTexture)
+    Module.UnitFrames.Power.Color = WTweaks:Ternary(Module.Settings.Unit.Power.UseClassColor, nil, WTweaks:ColorArrayToRGBA(Module.Settings.Unit.Power.BarColor))
 
     if Module.UnitFrames.Power.BlizzardTexture == nil then
         Module.UnitFrames.Power.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameManaBar)

@@ -24,6 +24,7 @@ end
 function Module:GetConfig()
     return {
         bags = {
+			parent = "general",
             type = "group",
             name = "Bags / Vendor",
             order = 1,

@@ -8,7 +8,7 @@ local Module = {
 
 table.insert(WTweaksModules, Module)
 
-function Module:OnSettingChanged(settings, groupName)
+function Module:OnSettingChanged(config, settingName)
     Module:Init()
 end
 
@@ -29,30 +29,30 @@ end
 function Module:OnPlayerDisconnect()
 	-- If there are more saved messages in the history table than allowed, purge them.
 	for i = 1, NUM_CHAT_WINDOWS do
-		local amountToDelete = getn(Module.Settings.History[i]) - Module.Settings.MaxHistoryCount
+		local amountToDelete = getn(Module.Settings.Chat.History[i]) - Module.Settings.Chat.MaxHistoryCount
 
 		for j = 1, amountToDelete do
-			tremove(Module.Settings.History[i], 1)
+			tremove(Module.Settings.Chat.History[i], 1)
 		end
 	end
 end
 
 function Module:LoadChatHistory()
-	if Module.Settings.History == nil then
-		Module.Settings.History = {}
+	if Module.Settings.Chat.History == nil then
+		Module.Settings.Chat.History = {}
 	end
 
-	if Module.Settings.MaxHistoryCount > 0 and Module.IsHistoryLoaded == false then
+	if Module.Settings.Chat.MaxHistoryCount > 0 and Module.IsHistoryLoaded == false then
 		-- Populate the chat windows with the chat history.
 		for i = 1, NUM_CHAT_WINDOWS do
 			local frameName = "ChatFrame"..i
 
-			if Module.Settings.History[i] == nil then
-				Module.Settings.History[i] = {}
+			if Module.Settings.Chat.History[i] == nil then
+				Module.Settings.Chat.History[i] = {}
 			end
 
 			-- Add history messages to chat frame.
-			for _, chatMessage in pairs(Module.Settings.History[i]) do
+			for _, chatMessage in pairs(Module.Settings.Chat.History[i]) do
 				_G[frameName]:AddMessage(unpack(chatMessage))
 			end
 		end
@@ -63,7 +63,7 @@ end
 
 function Module:GetConfig()
     return {
-		chat = {
+		Chat = {
 			type = "group",
 			name = "Chat",
 			order = 2,
@@ -109,7 +109,7 @@ function Module:GetConfig()
 end
 
 function Module:HookChatEvents()
-	if Module.Settings.MaxHistoryCount == 0 then
+	if Module.Settings.Chat.MaxHistoryCount == 0 then
 		return
 	end
 
@@ -117,18 +117,18 @@ function Module:HookChatEvents()
 		local frameName = "ChatFrame"..i
 		
 		WTweaks:HookSecure(_G[frameName], "AddMessage", function(frame, ...)
-			tinsert(Module.Settings.History[i], { ... })
+			tinsert(Module.Settings.Chat.History[i], { ... })
 		end)
 	end
 end
 
 function Module:UpdateChatSettings()
-	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.ChatFont)
+	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Chat.ChatFont)
 
 	for i = 1, NUM_CHAT_WINDOWS do
 		local chatFrame = _G["ChatFrame"..i]
 		local fontHeight = select(2, chatFrame:GetFont());
-		chatFrame:SetFont(fontFile, fontHeight, Module.Settings.ShowChatOutline and "OUTLINE" or "")
+		chatFrame:SetFont(fontFile, fontHeight, Module.Settings.Chat.ShowChatOutline and "OUTLINE" or "")
 	end
 end
 
@@ -549,7 +549,7 @@ function ChatFrame_MessageEventHandler(self, event, ...)
 
 			-- Add Channel
 			if (channelLength > 0) then
-				if Module.Settings.UseChatShortChannels then
+				if Module.Settings.Chat.UseChatShortChannels then
 					body = "|Hchannel:channel:"..arg8.."|h["..arg8.."]|h "..body;
 				else
 					body = "|Hchannel:channel:"..arg8.."|h["..ChatFrame_ResolvePrefixedChannelName(arg4).."]|h "..body;

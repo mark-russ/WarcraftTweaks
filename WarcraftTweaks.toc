@@ -8,6 +8,6 @@
 embeds.xml
 Main.lua
 modules/General.lua
-## modules/Bag.lua
-## modules/Chat.lua
-## modules/Unit.lua
+modules/Bag.lua
+modules/Chat.lua
+modules/Unit.lua

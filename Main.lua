@@ -1,10 +1,8 @@
 local AddonName, Vars = ...
 local WTweaks = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
-local DBName = "WarcraftTweaks"
+local DBName = AddonName
 WTweaks.NativeEvents = {}
 WTweaksModules = {}
-
-function WTweaks:OnSettingsChanged(settings, groupName) end
 
 function WTweaks:OnInitialize()
 	WTweaks:RegisterChatCommand("edit",  "OpenEditMode")
@@ -49,37 +47,44 @@ function WTweaks:LoadSharedMedia()
 end
 
 function WTweaks:GetConfig()
-	local configuration = {}
+	WTweaks.ModuleConfigMap = {}
+	
+	WTweaks.Configuration = {
+		type = "group",
+		args = {}
+	}
 
-	-- Merge configuration.
+	-- Merge configuration groups into one group.
 	for _, module in pairs(WTweaksModules) do
 		local moduleConfig = module:GetConfig()
 
 		for groupName, group in pairs(moduleConfig) do
-			configuration[groupName] = group
+			WTweaks.ModuleConfigMap[group] = module
+
+			if group.parent then
+				-- Reparent the group and remove the key to not break AceConfigDialog
+				WTweaks.Configuration.args[group.parent].args[groupName] = group
+				group.parent = nil
+			else
+				WTweaks.Configuration.args[groupName] = group
+			end
 		end
 	end
-
-	WTweaks.Configuration = {
-		type = "group",
-		args = configuration
-	}
 	
-	local defaults = {}
-	WTweaks:ProcessGroup(WTweaks.Configuration, defaults, nil)
-
 	WTweaks.Defaults = {
-		profile = defaults
+		profile = {}
 	}
+	-- Populate defaults from our merged root.
+	WTweaks:ExtractDefaultConfig(WTweaks.Configuration, WTweaks.Defaults.profile, nil)
 end
 
-function WTweaks:ProcessGroup(group, defaults, groupName)
+function WTweaks:ExtractDefaultConfig(group, defaults, groupName)
 	for optionName, option in pairs(group.args) do
 		if option.type == "group" then
 			defaults[optionName] = {}
-			WTweaks:ProcessGroup(option, defaults[optionName], optionName)
+			WTweaks:ExtractDefaultConfig(option, defaults[optionName], optionName)
 		else
-			-- Copy default over and remove it.
+			-- Copy default over and remove it to not break AceConfigDialog
 			local defaultValue = option.default
 			defaults[optionName] = defaultValue
 			option.default = nil
@@ -87,19 +92,40 @@ function WTweaks:ProcessGroup(group, defaults, groupName)
 	end
 end
 
-function WTweaks:HookOptions(group, defaults, groupName)
+function WTweaks:SetupConfigWatchers(group, config, groupName, module)
+	if groupName ~= nil and module == nil then
+		module = WTweaks.ModuleConfigMap[group]
+	end
+
 	for optionName, option in pairs(group.args) do
 		if option.type == "group" then
-			WTweaks:HookOptions(option, defaults[optionName], optionName)
+			WTweaks:SetupConfigWatchers(option, config[optionName], optionName, module)
 		else
-			option.set = function(info, ...)
-				local name = info[#info]
-				defaults[name] = ...
-			end
-			
-			option.get = function(info)
-				local name = info[#info]
-				return defaults[name]
+			-- Colors are a special structure, so we give them a special vararg getter/setter.
+			if (option.type == "color") then
+				option.set = function(info, ...)
+					local name = info[#info]
+					config[name] = { ... }
+	
+					module:OnSettingChanged(config, name)
+				end
+				
+				option.get = function(info)
+					local name = info[#info]
+					return unpack(config[name])
+				end
+			else
+				option.set = function(info, ...)
+					local name = info[#info]
+					config[name] = ...
+
+					module:OnSettingChanged(config, name)
+				end
+				
+				option.get = function(info)
+					local name = info[#info]
+					return config[name]
+				end
 			end
 		end
 	end
@@ -108,7 +134,7 @@ end
 function WTweaks:InitConfig()
 	WTweaks:GetConfig()
 	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults)
-	WTweaks:HookOptions(WTweaks.Configuration, WTweaks.DB.profile, nil)
+	WTweaks:SetupConfigWatchers(WTweaks.Configuration, WTweaks.DB.profile, nil, nil)
 
  	for _, module in pairs(WTweaksModules) do
  		local moduleConfig = module:GetConfig()
@@ -116,11 +142,10 @@ function WTweaks:InitConfig()
  	end
 
 	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, WTweaks.Configuration)
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
-	
-	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil, "general")
-	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Bags", AddonName, "bags")
-	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Chat", AddonName, "chat")
+	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil, "general")
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Chat", AddonName, "Chat")
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Unit", AddonName, "Unit Frames")
 
 	--WTweaks:PrintTable(WTweaks.DB.profile)
 end

@@ -1,13 +1,25 @@
-local AddonName, Vars = ...
-local WTweaks = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
+local AddonName, WTweaks = ...
+local LibAddon = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
+WTweaks.Version = GetAddOnMetadata(AddonName, "Version")
+
 local DBName = AddonName
 WTweaks.NativeEvents = {}
-WTweaksModules = {}
+WTweaks.Modules = {}
 
-function WTweaks:OnInitialize()
-	WTweaks:RegisterChatCommand("edit",  "OpenEditMode")
-	WTweaks:RegisterChatCommand("tweaks", "OpenConfig")
+function WTweaks:RegisterModule(moduleName)
+	local module = {
+		Name = moduleName,
+		Settings = nil
+	}
 
+	tinsert(WTweaks.Modules, module)
+	return module
+end
+
+function LibAddon:OnInitialize()
+	LibAddon:RegisterChatCommand("edit",  "OpenEditMode")
+	LibAddon:RegisterChatCommand("tweaks", "OpenConfig")
+	
 	WTweaks.Libs = {
 		AceGUI = LibStub("AceGUI-3.0"),
 		AceDB = LibStub("AceDB-3.0"),
@@ -26,8 +38,8 @@ function WTweaks:OnInitialize()
 	WTweaks:InitConfig()
 	
 	-- Notify each module that everything's good.
-	for _, mod in pairs(WTweaksModules) do
-		mod:OnModuleRegistered(WTweaks)
+	for _, mod in ipairs(WTweaks.Modules) do
+		mod:OnModuleRegistered()
 	end
 
 	-- As events happen, notify.
@@ -55,8 +67,8 @@ function WTweaks:GetConfig()
 	}
 
 	-- Merge configuration groups into one group.
-	for _, module in pairs(WTweaksModules) do
-		local moduleConfig = module:GetConfig()
+	for _, module in pairs(WTweaks.Modules) do
+		local moduleConfig = module.GetConfig()
 
 		for groupName, group in pairs(moduleConfig) do
 			WTweaks.ModuleConfigMap[group] = module
@@ -136,18 +148,12 @@ function WTweaks:InitConfig()
 	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults)
 	WTweaks:SetupConfigWatchers(WTweaks.Configuration, WTweaks.DB.profile, nil, nil)
 
- 	for _, module in pairs(WTweaksModules) do
+ 	for _, module in pairs(WTweaks.Modules) do
  		local moduleConfig = module:GetConfig()
 		module.Settings = WTweaks.DB.profile
  	end
 
 	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, WTweaks.Configuration)
-	--WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil)
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, AddonName, nil, "general")
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Chat", AddonName, "Chat")
-	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, "Unit", AddonName, "Unit Frames")
-
-	--WTweaks:PrintTable(WTweaks.DB.profile)
 end
 
 function WTweaks:HookEvent(eventName, callbackFunc)
@@ -159,11 +165,11 @@ function WTweaks:HookEvent(eventName, callbackFunc)
 	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
 end
 
-function WTweaks:OpenEditMode()
+function LibAddon:OpenEditMode()
 	EditModeManagerFrame:Show()
 end
 
-function WTweaks:OpenConfig(input)
+function LibAddon:OpenConfig(input)
 	InterfaceOptionsFrame_OpenToCategory(AddonName)
 end
 
@@ -221,7 +227,6 @@ function WTweaks:LoadFrame(frame)
 	end
 
 	frame:ClearAllPoints()
-	-- frame:SetSize(select(1, unpack(WTweaks.DB.profile.Frames[frameName].Size)))
 	frame:SetPoint(unpack(WTweaks.DB.profile.Frames[frameName].Point))
 end
 
@@ -330,12 +335,15 @@ function WTweaks:PrintTable(table, depth)
 			print(indentation .. elementName .. " {")
 			WTweaks:PrintTable(element, depth)
 			print(indentation .. "}")
-		else -- tostring(element)
+		else
 			local elementValue = WTweaks:Ternary(elementType == "string", "\"" .. tostring(element) .. "\"", tostring(element))
-			
 			print(indentation .. elementName .. " = " .. elementValue)
 		end
 	end
+end
+
+function WTweaks:AddOptionPage(label, path, parent)
+	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, label, parent, path)
 end
 
 function WTweaks:NoOp() end

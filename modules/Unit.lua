@@ -1,9 +1,9 @@
-local WTweaks
+local AddonName, WTweaks = ...
 
-local Module = {
-    Name = "Units",
-    Settings = nil,
-    Frames = {
+local Module = WTweaks:RegisterModule("Unit Frames")
+
+function Module:OnModuleRegistered()
+    Module.Frames = {
         Player = {
             Base = "Player",
             Updates = false
@@ -16,12 +16,20 @@ local Module = {
             Base = "Target",
             Updates = true
         }
-    },
-    UnitFrames = {
+    }
+
+    Module.UnitFrames = {
         Health = {},
         Power = {}
     }
-}
+
+	WTweaks:AddOptionPage(Module.Name, "Unit", "General")
+    Module:Init()
+end
+
+function Module:OnSettingChanged(settings, groupName)
+    Module:Init()
+end
 
 function Module:GetConfig()
     return {
@@ -146,18 +154,6 @@ function Module:GetConfig()
 		}
     }
 end 
-
-table.insert(WTweaksModules, Module)
-
-function Module:OnSettingChanged(settings, groupName)
-    Module:Init()
-end
-
-function Module:OnModuleRegistered(main)
-    WTweaks = main
-
-    Module:Init()
-end
 
 function Module:Init()
 	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Unit.Font)

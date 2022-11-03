@@ -1,18 +1,13 @@
-local WTweaks
+local AddonName, WTweaks = ...
 
-local Module = {
-    Name = "Bags",
-    Settings = nil
-}
-table.insert(WTweaksModules, Module)
+local Module = WTweaks:RegisterModule("Bags")
 
-function Module:OnSettingChanged(settings, groupName)
-    Module:Init()
+function Module:OnModuleRegistered()
+	Module:InitBagTray()
+	Module:Init()
 end
 
-function Module:OnModuleRegistered(main)
-    WTweaks = main
-	Module:InitBagTray()
+function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
 
@@ -23,8 +18,8 @@ end
 
 function Module:GetConfig()
     return {
-        bags = {
-			parent = "general",
+        Bags = {
+			parent = "General",
             type = "group",
             name = "Bags / Vendor",
             order = 1,
@@ -76,11 +71,11 @@ function Module:OnBackpackOpened()
 end
 
 function Module:OnMerchantOpened()
-	if Module.Settings.VendorJunk == "auto" or Module.Settings.VendorJunk == "autoButton" then
+	if Module.Settings.General.Bags.VendorJunk == "auto" or Module.Settings.General.Bags.VendorJunk == "autoButton" then
 		Module:VendorJunk()
 	end
 
-	if Module.Settings.AutoRepair ~= "disabled" then
+	if Module.Settings.General.Bags.AutoRepair ~= "disabled" then
 		Module:RepairGear()
 	end
 end
@@ -135,7 +130,7 @@ end
 function Module:UpdateReorganizeBagsButtonState()
 	WTweaks:HookSecure(BagItemAutoSortButton, "Show", BagItemAutoSortButton.Hide)
 	
-	if Module.Settings.ShowReorganizeBagsButton then
+	if Module.Settings.General.Bags.ShowReorganizeBagsButton then
 		Module.BagTray.Integrations.ReorganizeBagsButton:Show()
 	else
 		Module.BagTray.Integrations.ReorganizeBagsButton:Hide()
@@ -158,7 +153,7 @@ function Module:UpdateVendorJunkButtonState()
 	WTweaks:HookSecure(ContainerFrameCombinedBags, "Show", Module.OnBackpackOpened)
 	WTweaks:HookSecure(ContainerFrame1, "Show", Module.OnBackpackOpened)
 	
-	if Module.Settings.VendorJunk == "disabled" or Module.Settings.VendorJunk == "auto" then
+	if Module.Settings.General.Bags.VendorJunk == "disabled" or Module.Settings.General.Bags.VendorJunk == "auto" then
 		Module.BagTray.Integrations.VendorJunkButton:Hide()
 	else
 		Module.BagTray.Integrations.VendorJunkButton:Show()
@@ -186,7 +181,7 @@ end
 
 function Module:RepairGear()
 	local repairAllCost, canRepair = GetRepairAllCost()
-    local autorepairMode = Module.Settings.AutoRepair
+    local autorepairMode = Module.Settings.General.Bags.AutoRepair
 
 	if repairAllCost > 0 and canRepair then
 		if CanGuildBankRepair() and autorepairMode == "guild" then

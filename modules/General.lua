@@ -1,17 +1,13 @@
-local WTweaks
+local AddonName, WTweaks = ...
 
-local Module = {
-    Name = "General"
-}
+local Module = WTweaks:RegisterModule("General")
 
-table.insert(WTweaksModules, Module)
-
-function Module:OnSettingChanged(settings, groupName)
+function Module:OnModuleRegistered()
+	WTweaks:AddOptionPage(Module.Name, "General", nil)
     Module:Init()
 end
 
-function Module:OnModuleRegistered(main)
-    WTweaks = main
+function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
 
@@ -24,7 +20,7 @@ end
 
 function Module:GetConfig()
     return {
-        general = {
+        General = {
             type = "group",
             name = "General",
             order = 0,
@@ -63,7 +59,7 @@ function Module:UpdateXPBarState()
 	WTweaks:LoadFrame(StatusTrackingBarManager)
 	WTweaks:MakeFrameDraggable(StatusTrackingBarManager)
 
-	if Module.Settings.general.ShowXPBar then
+	if Module.Settings.General.ShowXPBar then
 		StatusTrackingBarManager:Show()
 	else
 		StatusTrackingBarManager:Hide()
@@ -73,7 +69,7 @@ end
 function Module:UpdateMicroBarState()
 	-- Repositions the bag frames to appear in the bottom-right corner.
 	WTweaks:HookSecure("UpdateContainerFrameAnchors", function()
-		if not Module.Settings.general.ShowMicroBar then
+		if not Module.Settings.General.ShowMicroBar then
 			local bagFrame = WTweaks:GetBagFrame()
 			
 			bagFrame:ClearAllPoints()
@@ -81,7 +77,7 @@ function Module:UpdateMicroBarState()
 		end
 	end)
 
-	if not Module.Settings.general.ShowMicroBar then
+	if not Module.Settings.General.ShowMicroBar then
 		MicroButtonAndBagsBar:Hide()
 		QueueStatusButton:SetParent(UIParent)
 		QueueStatusButton:ClearAllPoints()
@@ -95,7 +91,7 @@ function Module:UpdateMicroBarState()
 end
 
 function Module:UpdateErrorTextState()
-	if not Module.Settings.general.ShowErrorText then
+	if not Module.Settings.General.ShowErrorText then
 		UIErrorsFrame:Hide()
 	else
 		UIErrorsFrame:Show()
@@ -103,7 +99,7 @@ function Module:UpdateErrorTextState()
 end
 
 function Module:UpdateRestedXPIndicatorState()
-	if not Module.Settings.general.ShowRestedXP then
+	if not Module.Settings.General.ShowRestedXP then
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(0)
 	else
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(1)

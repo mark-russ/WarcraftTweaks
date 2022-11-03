@@ -1,24 +1,19 @@
-local WTweaks
+local AddonName, WTweaks = ...
 
-local Module = {
-    Name = "Chat",
-	IsHistoryLoaded = false,
-	Enabled = false
-}
+local Module = WTweaks:RegisterModule("Chat")
 
-table.insert(WTweaksModules, Module)
-
-function Module:OnSettingChanged(config, settingName)
-    Module:Init()
-end
-
-function Module:OnModuleRegistered(main)
-    WTweaks = main
-
+function Module:OnModuleRegistered()
+	Module.IsHistoryLoaded = false;
+	Module.Enabled = false
 	Module:LoadChatHistory()
     Module:Init()
 
+	WTweaks:AddOptionPage(Module.Name, "Chat", "General")
 	WTweaks:HookEvent("PLAYER_LEAVING_WORLD", Module.OnPlayerDisconnect)
+end
+
+function Module:OnSettingChanged(settings, groupName)
+    Module:Init()
 end
 
 function Module:Init()
@@ -64,8 +59,8 @@ end
 function Module:GetConfig()
     return {
 		Chat = {
-			type = "group",
 			name = "Chat",
+			type = "group",
 			order = 2,
 			inline = true,
 			args = {

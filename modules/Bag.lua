@@ -22,7 +22,7 @@ function Module:GetConfig()
 			parent = "General",
             type = "group",
             name = "Bags / Vendor",
-            order = 1,
+            order = 5,
             inline = true,
             args = {
                 VendorJunk = {

@@ -3,8 +3,18 @@ local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("General")
 
 function Module:OnModuleRegistered()
-	WTweaks:AddOptionPage(Module.Name, "General", nil)
+	WTweaks:AddOptionPage(AddonName, "General", nil)
     Module:Init()
+end
+
+function Module:OnInitialize(Main)
+	Main:RegisterChatCommand("tweaks", function()
+		InterfaceOptionsFrame_OpenToCategory(AddonName)
+	end)
+	
+	Main:RegisterChatCommand("edit", function()
+		EditModeManagerFrame:Show()
+	end)
 end
 
 function Module:OnSettingChanged(settings, groupName)
@@ -23,32 +33,40 @@ function Module:GetConfig()
         General = {
             type = "group",
             name = "General",
-            order = 0,
+            order = 1,
             inline = true,
             args = {
                 ShowXPBar = {
                     name = "Show XP bar",
                     desc = "This also affects the reputation bar.",
                     type = "toggle",
-                    default = true
+                    default = true,
+					order = 1,
+					width = 1.5
                 },
                 ShowMicroBar = {
                     name = "Show micro bar",
                     desc = "If unchecked, the micro bar will be hidden.",
                     type = "toggle",
-                    default = true
+                    default = true,
+					order = 2,
+					width = 1.5
                 },
                 ShowRestedXP = {
                     name = "Show resting indicator",
                     desc = "If unchecked, the resting indicator will be hidden.",
                     type = "toggle",
-                    default = true
+                    default = true,
+					order = 3,
+					width = 1.5
                 },
                 ShowErrorText = {
                     name = "Show red error text",
                     desc = "If unchecked, the red error text will be hidden.",
                     type = "toggle",
-                    default = true
+                    default = true,
+					order = 4,
+					width = 1.5
                 }
             }
         }

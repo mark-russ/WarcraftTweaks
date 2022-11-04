@@ -17,8 +17,11 @@ function WTweaks:RegisterModule(moduleName)
 end
 
 function LibAddon:OnInitialize()
-	LibAddon:RegisterChatCommand("edit",  "OpenEditMode")
-	LibAddon:RegisterChatCommand("tweaks", "OpenConfig")
+	for _, module in ipairs(WTweaks.Modules) do
+		if module.OnInitialize then
+			module:OnInitialize(self)
+		end
+	end
 	
 	WTweaks.Libs = {
 		AceGUI = LibStub("AceGUI-3.0"),
@@ -163,14 +166,6 @@ function WTweaks:HookEvent(eventName, callbackFunc)
 	end
 
 	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
-end
-
-function LibAddon:OpenEditMode()
-	EditModeManagerFrame:Show()
-end
-
-function LibAddon:OpenConfig(input)
-	InterfaceOptionsFrame_OpenToCategory(AddonName)
 end
 
 function WTweaks:IsFuncSaved(frame, funcName)

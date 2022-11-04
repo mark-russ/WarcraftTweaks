@@ -8,7 +8,7 @@ function Module:OnModuleRegistered()
 	Module:LoadChatHistory()
     Module:Init()
 
-	WTweaks:AddOptionPage(Module.Name, "Chat", "General")
+	WTweaks:AddOptionPage(Module.Name, "Chat", AddonName)
 	WTweaks:HookEvent("PLAYER_LEAVING_WORLD", Module.OnPlayerDisconnect)
 end
 

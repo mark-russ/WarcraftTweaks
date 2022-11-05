@@ -176,20 +176,24 @@ function Module:Init()
             local pendingFrames = {
                 PlayerFrame,
                 TargetFrame,
-                FocusFrame,
                 TargetFrameToT,
+                FocusFrame,
+                FocusFrameToT,
                 PetFrame
             }
 
+            -- Party frames.
             for memberFrame in PartyFrame.PartyMemberFramePool:EnumerateActive() do
                 tinsert(pendingFrames, memberFrame)
             end
 
+            -- Arena frames.
             for _, unitFrame in ipairs(ArenaEnemyMatchFramesContainer.UnitFrames) do
                 tinsert(pendingFrames, unitFrame)
                 tinsert(pendingFrames, unitFrame:GetPetFrame())
             end
 
+            -- Normalize all.
             for _, pendingFrame in pairs(pendingFrames) do
                 local frame = Module:GetNormalizedFrame(pendingFrame)
                 Module.NormalizedFrames[frame.Unit] = frame

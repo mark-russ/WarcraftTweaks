@@ -3,20 +3,26 @@ local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("Chat")
 
 function Module:OnModuleRegistered()
-	Module.IsHistoryLoaded = false;
-	Module.Enabled = false
-	Module:LoadChatHistory()
-    Module:Init()
-
+    Module:Init(false)
 	WTweaks:AddOptionPage(Module.Name, "Chat", AddonName)
 	WTweaks:HookEvent("PLAYER_LEAVING_WORLD", Module.OnPlayerDisconnect)
 end
 
 function Module:OnSettingChanged(settings, groupName)
-    Module:Init()
+    Module:Init(true)
 end
 
-function Module:Init()
+function Module:OnProfileChanged()
+    Module:Init(false)
+end
+
+function Module:Init(isRefreshing)
+	if not isRefreshing then
+		Module.IsHistoryLoaded = false
+		Module.IsEnabled = false
+		Module:LoadChatHistory()
+	end
+
 	Module:HookChatEvents()
 	Module:UpdateChatSettings()
 end
@@ -37,7 +43,7 @@ function Module:LoadChatHistory()
 		Module.Settings.Chat.History = {}
 	end
 
-	if Module.Settings.Chat.MaxHistoryCount > 0 and Module.IsHistoryLoaded == false then
+	if Module.IsHistoryLoaded == false then
 		-- Populate the chat windows with the chat history.
 		for i = 1, NUM_CHAT_WINDOWS do
 			local frameName = "ChatFrame"..i
@@ -47,8 +53,12 @@ function Module:LoadChatHistory()
 			end
 
 			-- Add history messages to chat frame.
-			for _, chatMessage in pairs(Module.Settings.Chat.History[i]) do
-				_G[frameName]:AddMessage(unpack(chatMessage))
+			if Module.Settings.Chat.MaxHistoryCount > 0 then
+				_G[frameName]:Clear()
+				
+				for _, chatMessage in pairs(Module.Settings.Chat.History[i]) do
+					_G[frameName]:AddMessage(unpack(chatMessage))
+				end
 			end
 		end
 
@@ -112,6 +122,10 @@ function Module:HookChatEvents()
 		local frameName = "ChatFrame"..i
 		
 		WTweaks:HookSecure(_G[frameName], "AddMessage", function(frame, ...)
+			if not Module.IsHistoryLoaded then
+				return
+			end
+
 			tinsert(Module.Settings.Chat.History[i], { ... })
 		end)
 	end

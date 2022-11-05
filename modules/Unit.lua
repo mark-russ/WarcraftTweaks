@@ -19,6 +19,10 @@ function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
 
+function Module:OnProfileChanged()
+    Module:Init()
+end
+
 function Module:GetConfig()
     return {
 		Unit = {
@@ -133,7 +137,7 @@ function Module:GetConfig()
                             hasAlpha = true,
                             default = { 0.0, 0.0, 0.8, 0.8 },
                             disabled = function()
-                                return not Module.Settings.Unit.Power.IsEnabled or not Module.Settings.Unit.Power.UseClassColor
+                                return not Module.Settings.Unit.Power.IsEnabled or Module.Settings.Unit.Power.UseClassColor
                             end
                         }
                     }

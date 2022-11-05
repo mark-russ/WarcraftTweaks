@@ -7,6 +7,10 @@ function Module:OnModuleRegistered()
     Module:Init()
 end
 
+function Module:OnProfileChanged()
+    Module:Init()
+end
+
 function Module:OnInitialize(Main)
 	Main:RegisterChatCommand("tweaks", function()
 		InterfaceOptionsFrame_OpenToCategory(AddonName)

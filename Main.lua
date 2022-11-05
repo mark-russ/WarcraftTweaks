@@ -9,7 +9,11 @@ WTweaks.Modules = {}
 function WTweaks:RegisterModule(moduleName)
 	local module = {
 		Name = moduleName,
-		Settings = nil
+		Settings = nil,
+		OnProfileChanged = function() end,
+		GetConfig = function()
+			return {}
+		end
 	}
 
 	tinsert(WTweaks.Modules, module)
@@ -26,6 +30,7 @@ function LibAddon:OnInitialize()
 	WTweaks.Libs = {
 		AceGUI = LibStub("AceGUI-3.0"),
 		AceDB = LibStub("AceDB-3.0"),
+		AceDBOptions = LibStub("AceDBOptions-3.0"),
 		AceConfig = LibStub("AceConfig-3.0"),
 		AceCfgDialog = LibStub("AceConfigDialog-3.0"),
 		SharedMedia = LibStub("LibSharedMedia-3.0")
@@ -107,6 +112,11 @@ function WTweaks:ExtractDefaultConfig(group, defaults, groupName)
 end
 
 function WTweaks:SetupConfigWatchers(group, config, groupName, module)
+	-- This is added by the profile manager. Do not watch.
+	if groupName == "profile" then
+		return
+	end
+
 	if groupName ~= nil and module == nil then
 		module = WTweaks.ModuleConfigMap[group]
 	end
@@ -148,13 +158,14 @@ end
 function WTweaks:InitConfig()
 	WTweaks:GetConfig()
 	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults)
+	WTweaks.DB:RegisterDefaults(WTweaks.Defaults)
 	WTweaks:SetupConfigWatchers(WTweaks.Configuration, WTweaks.DB.profile, nil, nil)
 
  	for _, module in pairs(WTweaks.Modules) do
  		local moduleConfig = module:GetConfig()
 		module.Settings = WTweaks.DB.profile
  	end
-
+	
 	WTweaks.Libs.AceConfig:RegisterOptionsTable(AddonName, WTweaks.Configuration)
 end
 

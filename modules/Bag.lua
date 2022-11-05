@@ -11,6 +11,10 @@ function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
 
+function Module:OnProfileChanged()
+    Module:Init()
+end
+
 function Module:Init()
 	Module:UpdateVendorJunkButtonState()
 	Module:UpdateReorganizeBagsButtonState()

@@ -67,7 +67,13 @@ function Module:GetConfig()
                     default = true,
 					order = 4,
 					width = 1.5
-                }
+                },
+				Description = {
+					name = "+ Version: " .. WTweaks.Version,
+					type = "description",
+					width = full,
+					order = 6
+				}
             }
         }
     }

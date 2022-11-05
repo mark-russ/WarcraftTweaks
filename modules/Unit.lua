@@ -137,6 +137,13 @@ function Module:GetConfig()
                             end
                         }
                     }
+                },
+
+                ShowPlayerBossFrame = {
+					name = "Player Boss Frame",
+					desc = "The player frame will have a boss border.",
+					type = "toggle",
+					default = false
                 }
 			}
 		}
@@ -144,33 +151,43 @@ function Module:GetConfig()
 end 
 
 function Module:Init()
-	Module.UnitFrames.Health.Enabled = Module.Settings.Unit.Health.IsEnabled
+	Module.UnitFrames.Health.IsEnabled = Module.Settings.Unit.Health.IsEnabled
     Module.UnitFrames.Health.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.Unit.Health.BarTexture)
     Module.UnitFrames.Health.Color = WTweaks:ColorArrayToRGBA(Module.Settings.Unit.Health.BarColor)
 
-    if Module.UnitFrames.Health.BlizzardTexture == nil then
-        Module.UnitFrames.Health.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameHealthBar)
-    end
-
-    Module.UnitFrames.Power.Enabled = Module.Settings.Unit.Power.IsEnabled
+    Module.UnitFrames.Power.IsEnabled = Module.Settings.Unit.Power.IsEnabled
     Module.UnitFrames.Power.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.Unit.Power.BarTexture)
     Module.UnitFrames.Power.Color = WTweaks:Ternary(Module.Settings.Unit.Power.UseClassColor, nil, WTweaks:ColorArrayToRGBA(Module.Settings.Unit.Power.BarColor))
 
-    if Module.UnitFrames.Power.BlizzardTexture == nil then
+    Module.UnitFrames.IsEnabled = Module.UnitFrames.Health.IsEnabled or Module.UnitFrames.Power.IsEnabled
+    
+    Module.UnitFrames.Font = {
+        File = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Unit.Font),
+        Height = Module.Settings.Unit.FontSize,
+        Outline = Module.Settings.Unit.ShowFontOutline and "OUTLINE" or "",
+    }
+    
+    -- One time init code...
+    if Module.UnitFrames.IsEnabled and not Module.IsInitialized then
+        Module.UnitFrames.Health.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameHealthBar)
         Module.UnitFrames.Power.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameManaBar)
-    end
 
-    if not Module.IsInitialized then
         do  -- Populate loaded frames.
             local pendingFrames = {
                 PlayerFrame,
                 TargetFrame,
                 FocusFrame,
-                TargetFrameToT
+                TargetFrameToT,
+                PetFrame
             }
 
             for memberFrame in PartyFrame.PartyMemberFramePool:EnumerateActive() do
                 tinsert(pendingFrames, memberFrame)
+            end
+
+            for _, unitFrame in ipairs(ArenaEnemyMatchFramesContainer.UnitFrames) do
+                tinsert(pendingFrames, unitFrame)
+                tinsert(pendingFrames, unitFrame:GetPetFrame())
             end
 
             for _, pendingFrame in pairs(pendingFrames) do
@@ -181,45 +198,49 @@ function Module:Init()
 
         -- Style each frame.
         for _, unitFrame in pairs(Module.NormalizedFrames) do
-            Module:ApplyStyle(unitFrame)
-
             -- Hook frames that require updates.
             if unitFrame.Updates then
                 if unitFrame.IsPartyFrame then
                     -- We can set a flag once on the frame to reduce updates to ONE update.
-                    WTweaks:HookSecure(unitFrame.BlizzFrame, "Show", function(self)
+                    WTweaks:HookSecure(unitFrame.BFrame, "Show", function(self)
                         unitFrame.IsUpdatePending = true
                     end)
         
                     -- On update, if the flag is set, we have to update the health bar.
-                    WTweaks:HookSecure(unitFrame.BlizzFrame, "UpdateMember", function(self)
+                    WTweaks:HookSecure(unitFrame.BFrame, "UpdateMember", function(self)
                         if unitFrame.IsUpdatePending then
-                            Module:ApplyStyle(unitFrame)
+                            Module:UpdateStyle(unitFrame)
                             unitFrame.IsUpdatePending = false
                         end
                     end)
                 else
                     -- We can set a flag once on the frame to reduce updates to ONE update.
-                    WTweaks:HookSecure(unitFrame.BlizzFrame, "Show", function(self)
+                    WTweaks:HookSecure(unitFrame.BFrame, "Show", function(self)
                         unitFrame.IsUpdatePending = true
                     end)
         
                     -- On update, if the flag is set, we have to update the health bar.
-                    WTweaks:HookSecure(unitFrame.BlizzFrame, "Update", function(self)
+                    WTweaks:HookSecure(unitFrame.BFrame, "Update", function(self)
                         if unitFrame.IsUpdatePending then
-                            Module:ApplyStyle(unitFrame)
+                            Module:UpdateStyle(unitFrame)
+
+                            if Module.Settings.Unit.ShowPlayerBossFrame then
+                                local isMe = UnitIsUnit(unitFrame.Unit, "player")
+
+                                if isMe and self.TargetFrameContainer and self.TargetFrameContainer.BossPortraitFrameTexture then
+                                    self.TargetFrameContainer.BossPortraitFrameTexture:Show()
+                                end
+                            end
+
+                            
                             unitFrame.IsUpdatePending = false
                         end
                     end)
                 end
             end
-  
-            -- Fix Blizzard's text alignment.
-            if unitFrame.Text.Level then
-                local point = { unitFrame.Text.Level:GetPoint() }
-                point[5] = point[5] + 1
-                unitFrame.Text.Level:SetPoint(unpack(point))
-                unitFrame.Text.Level:SetSize(0, 12)
+
+            if unitFrame.Init then 
+                unitFrame.Init()
             end
         end
 
@@ -228,128 +249,151 @@ function Module:Init()
             local registeredFrame = Module.NormalizedFrames[self.unit]
 
             if registeredFrame ~= nil then
-                Module:ApplyStyle(registeredFrame)
+                Module:UpdateStyle(registeredFrame)
+            else
+                print("Encountered unknown frame for unit " .. self.unit)
             end
         end)
-    else
-        for _, unitFrame in pairs(Module.NormalizedFrames) do
-            Module:ApplyStyle(unitFrame)
-        end
+
+        Module.IsInitialized = true
     end
 
-    Module.IsInitialized = true
+    for _, unitFrame in pairs(Module.NormalizedFrames) do
+        unitFrame.IsUpdatePending = true
+        Module:ApplyStyle(unitFrame)
+    end
+
+    if Module.Settings.Unit.ShowPlayerBossFrame then
+        Module:AttachBossPortraitFrame(PlayerFrame.PlayerFrameContainer.PlayerPortrait)
+    elseif PlayerFrame.PlayerFrameContainer.BossPortraitFrameTexture ~= nil then
+        PlayerFrame.PlayerFrameContainer.BossPortraitFrameTexture:Hide()
+    end
 end
 
--- TargetFrame.TargetFrameContainer.BossPortraitFrame
-
 function Module:ApplyStyle(unitFrame)
-	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Unit.Font)
-    local fontHeight = Module.Settings.Unit.FontSize
-    local fontOutline = Module.Settings.Unit.ShowFontOutline and "OUTLINE" or ""
+    if Module.UnitFrames.Health.IsEnabled then
+        local c = Module.UnitFrames.Health.Color
+        unitFrame.Bars.Health:SetStatusBarColor(c.r, c.g, c.b, c.a)
+        unitFrame.Bars.Health:SetStatusBarTexture(Module.UnitFrames.Health.Texture)
+    else
+        WTweaks:SetStatusBar(unitFrame.Bars.Health, Module.UnitFrames.Health.BlizzardTexture)
+    end
 
-    unitFrame.Bars.Health:SetStatusBarTexture(Module.UnitFrames.Health.Texture)
-    unitFrame.Bars.Mana:SetStatusBarTexture(Module.UnitFrames.Power.Texture)
-
-    local c = Module.UnitFrames.Health.Color
-    unitFrame.Bars.Health:SetStatusBarColor(c.r, c.g, c.b, c.a)
-
-    c = Module.UnitFrames.Power.Color or Module:GetClassColor(unitFrame.Unit)
-    unitFrame.Bars.Mana:SetStatusBarColor(c.r, c.g, c.b, c.a)
+    if Module.UnitFrames.Power.IsEnabled then
+        local c = Module.UnitFrames.Power.Color or Module:GetClassColor(unitFrame.Unit)
+        unitFrame.Bars.Mana:SetStatusBarColor(c.r, c.g, c.b, c.a)
+        unitFrame.Bars.Mana:SetStatusBarTexture(Module.UnitFrames.Power.Texture)
+    else
+        UnitFrameManaBar_Update(unitFrame.Bars.Mana, unitFrame.Unit)
+    end
 
     for _, text in pairs(unitFrame.Text) do
-        text:SetFont(fontFile, fontHeight, fontOutline)
+        text:SetFont(Module.UnitFrames.Font.File, Module.UnitFrames.Font.Height + (unitFrame.FontSizeAdjust or 0), Module.UnitFrames.Font.Outline)
+    end
+end
+
+function Module:UpdateStyle(unitFrame)
+    if Module.UnitFrames.Health.IsEnabled then
+        local c = Module.UnitFrames.Health.Color
+        unitFrame.Bars.Health:SetStatusBarColor(c.r, c.g, c.b, c.a)
+        unitFrame.Bars.Health:SetStatusBarTexture(Module.UnitFrames.Health.Texture)
+    end
+
+    if Module.UnitFrames.Power.IsEnabled then
+        local c = Module.UnitFrames.Power.Color or Module:GetClassColor(unitFrame.Unit)
+        unitFrame.Bars.Mana:SetStatusBarColor(c.r, c.g, c.b, c.a)
+        unitFrame.Bars.Mana:SetStatusBarTexture(Module.UnitFrames.Power.Texture)
     end
 end
 
 function Module:GetNormalizedFrame(frame)
-    if frame == PlayerFrame then
-        return Module:GetNormalizedPlayerFrame(frame)
-    elseif frame == TargetFrame or frame == FocusFrame then
-        return Module:GetNormalizedTargetFrame(frame)
-    elseif frame == TargetFrameToT then
-        return Module:GetNormalizedTargetOfTargetFrame(frame)
-    elseif frame:GetParent() == PartyFrame then
-        return Module:GetNormalizedPartyMemberFrame(frame)
-    elseif frame == PetFrame then
-        print("unknown frame of type: " .. frame.unit)
+    local parent = frame:GetParent()
+    local frame = Module:GetNormalizedFrameDetails(frame)
+    
+    if frame.BFrame == PlayerFrame then
+        frame.Updates = false
+    elseif parent == PartyFrame then
+        frame.IsPartyFrame = true
+        frame.Updates = true
+    elseif parent == ArenaEnemyMatchFramesContainer then
+        frame.IsEnemyFrame = true
     else
-        print("unknown frame of type: " .. frame.unit)
+        frame.Updates = true
     end
 
-    return nil
+    -- Fix Blizzard's text alignment.
+    if frame.Text.Level then
+        frame.Init = function()
+            Module:AdjustText(frame.Text.Level, 0, 1, 0, 12)
+        end
+    end
+
+    return frame
 end
 
-function Module:GetNormalizedPlayerFrame(frame)
-    return {
+function Module:GetNormalizedFrameDetails(frame)
+    local normalized = {
+        BFrame = frame,
         Unit = frame.unit,
+        Portrait = frame.portrait,
         Text = {
-            Name = PlayerName,
-            Level = PlayerLevelText,
-            Health = PlayerFrameHealthBarText,
-            Mana = PlayerFrameManaBarText
-        },
-        Bars = {
-            Health = PlayerFrameHealthBar,
-            Mana = PlayerFrameManaBar
-        },
-        BlizzFrame = frame
-    }
-end
-
-function Module:GetNormalizedTargetFrame(frame)
-    local content = frame.TargetFrameContent.TargetFrameContentMain
-    return {
-        Unit = frame.unit,
-        Text = {
-            Name = content.Name,
-            Level = content.LevelText,
-            Health = content.HealthBar.TextString,
-            Mana = content.ManaBar.TextString
-        },
-        Bars = {
-            Health = content.HealthBar,
-            Mana = content.ManaBar
-        },
-        BlizzFrame = frame,
-        Updates = true
-    }
-end
-
-function Module:GetNormalizedTargetOfTargetFrame(frame)
-    return {
-        Unit = frame.unit,
-        Text = {
-            Name = frame.Name,
-            Level = nil,
+            Name = frame.name,
+            Level = frame.level,
             Health = nil,
-            Mana = nil
+            Mana = nil,
         },
         Bars = {
-            Health = frame.HealthBar,
-            Mana = frame.ManaBar
-        },
-        BlizzFrame = frame,
-        Updates = true
+            Health = frame.healthbar,
+            Mana = frame.manabar
+        }
     }
+
+    if frame == PlayerFrame then
+        normalized.Text.Level = PlayerLevelText
+    else
+        normalized.Text.Level = frame.name:GetParent().LevelText
+    end
+
+    if frame.healthbar then
+        normalized.Text.Health = frame.healthbar.text
+    end
+
+    if frame.manabar then
+        normalized.Text.Mana = frame.manabar.text
+    end
+
+    return normalized
 end
 
-function Module:GetNormalizedPartyMemberFrame(frame)
-    return {
-        Unit = frame.unit,
-        Text = {
-            Name = frame.Name,
-            Level = nil, -- Party members have no level text.
-            Health = frame.HealthBar.TextString,
-            Mana = frame.ManaBar.TextString
-        },
-        Bars = {
-            Health = frame.HealthBar,
-            Mana = frame.ManaBar
-        },
-        BlizzFrame = frame,
-        IsPartyFrame = true,
-        Updates = true
-    }
+
+function Module:AttachBossPortraitFrame(portraitFrame)
+    if portraitFrame:GetParent().BossPortraitFrameTexture then
+        portraitFrame:GetParent().BossPortraitFrameTexture:Show()
+        return
+    end
+
+    local bossPortraitFrame = TargetFrame.TargetFrameContainer.BossPortraitFrameTexture
+    local bossPortraitTexture = bossPortraitFrame:GetTexture()
+    local bossPortraitAtlas = bossPortraitFrame:GetAtlas()
+    
+    local parent = portraitFrame:GetParent()
+
+    local texture = parent:CreateTexture(bossPortraitTexture, "ARTWORK", nil, 2)
+    texture:SetAtlas(bossPortraitAtlas, TextureKitConstants.UseAtlasSize)
+    texture:SetTexCoord(1, 0, 0, 1); -- Flip X
+    texture:SetPoint("CENTER", portraitFrame, "CENTER", -6, 0)
+    parent.BossPortraitFrameTexture = texture
+end
+
+function Module:AdjustText(textFrame, x, y, width, height)
+    local point = { textFrame:GetPoint() }
+    point[4] = point[4] + x
+    point[5] = point[5] + y
+    textFrame:SetPoint(unpack(point))
+
+    if width ~= nil then
+        textFrame:SetSize(width, height)
+    end
 end
 
 function Module:GetClassColor(unit)
@@ -363,8 +407,4 @@ function Module:GetClassColor(unit)
     else
         return PowerBarColor[powerType] or PowerBarColor["MANA"]
     end
-end
-
-function Module:OnPowerTypeChanged(blizzFrame) 
-
 end

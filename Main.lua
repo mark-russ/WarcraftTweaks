@@ -28,8 +28,7 @@ function LibAddon:OnInitialize()
 		AceDB = LibStub("AceDB-3.0"),
 		AceConfig = LibStub("AceConfig-3.0"),
 		AceCfgDialog = LibStub("AceConfigDialog-3.0"),
-		SharedMedia = LibStub("LibSharedMedia-3.0"),
-		LSM = LibStub("AceGUISharedMediaWidgets-1.0") 
+		SharedMedia = LibStub("LibSharedMedia-3.0")
 	}
 
 	WTweaks.Frames = {
@@ -71,7 +70,7 @@ function WTweaks:GetConfig()
 
 	-- Merge configuration groups into one group.
 	for _, module in pairs(WTweaks.Modules) do
-		local moduleConfig = module.GetConfig()
+		local moduleConfig = module:GetConfig()
 
 		for groupName, group in pairs(moduleConfig) do
 			WTweaks.ModuleConfigMap[group] = module
@@ -302,13 +301,15 @@ function WTweaks:GetStatusBar(frame)
 
     return {
         texture = statusBar:GetTexture(),
-        atlas = statusBar:GetAtlas()
+        atlas = statusBar:GetAtlas(),
+		color = WTweaks:ColorArrayToRGBA({ frame:GetStatusBarColor() })
     }
 end
 
 function WTweaks:SetStatusBar(frame, statusBar)
     frame:SetStatusBarTexture(statusBar.texture)
-    frame:GetStatusBarTexture():SetAtlas(statusBar.atlas)
+    frame:GetStatusBarTexture():SetAtlas(statusBar.atlas, TextureKitConstants.UseAtlasSize)
+	frame:SetStatusBarColor(statusBar.color.r, statusBar.color.g, statusBar.color.b, statusBar.color.a)
 end
 
 function WTweaks:ColorArrayToRGBA(color)

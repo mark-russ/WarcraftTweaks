@@ -25,7 +25,7 @@ function Module:OnModuleRegistered()
 		[LE_GAME_ERR_BADATTACKFACING] = true,
 		[LE_GAME_ERR_BADATTACKPOS] = true
 	}
-
+	
     Module:Init()
 end
 

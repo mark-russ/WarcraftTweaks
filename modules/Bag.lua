@@ -3,6 +3,12 @@ local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("Bags")
 
 function Module:OnModuleRegistered()
+	WTweaks:HookEvent("LOOT_OPENED", function(isAutoLoot)
+		if isAutoLoot and Module.Settings.General.Bags.IsInstantLootEnabled then
+			LootFrame:Hide()
+		end
+	end)
+
 	Module:InitBagTray()
 	Module:Init()
 end
@@ -60,7 +66,14 @@ function Module:GetConfig()
                     order = 2,
                     type = "toggle",
                     default = true
-                }
+                },
+				IsInstantLootEnabled = {
+                    name = "Instant Loot",
+                    desc = "Loot will be gathered instantly. This will only work if autoloot is enabled.",
+                    order = 3,
+                    type = "toggle",
+                    default = false
+				}
             }
         }
     }

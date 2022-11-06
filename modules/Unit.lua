@@ -264,8 +264,6 @@ function Module:Init()
 
             if registeredFrame ~= nil then
                 Module:UpdateStyle(registeredFrame)
-            else
-                print("Encountered unknown frame for unit " .. self.unit)
             end
         end)
 

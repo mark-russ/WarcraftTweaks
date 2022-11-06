@@ -123,7 +123,8 @@ function WTweaks:SetupConfigWatchers(group, config, groupName, module)
 
 	for optionName, option in pairs(group.args) do
 		if option.type == "group" then
-			WTweaks:SetupConfigWatchers(option, config[optionName], optionName, module)
+			local submodule = WTweaks.ModuleConfigMap[option]
+			WTweaks:SetupConfigWatchers(option, config[optionName], optionName, submodule or module)
 		else
 			-- Colors are a special structure, so we give them a special vararg getter/setter.
 			if (option.type == "color") then
@@ -162,7 +163,6 @@ function WTweaks:InitConfig()
 	WTweaks:SetupConfigWatchers(WTweaks.Configuration, WTweaks.DB.profile, nil, nil)
 
  	for _, module in pairs(WTweaks.Modules) do
- 		local moduleConfig = module:GetConfig()
 		module.Settings = WTweaks.DB.profile
  	end
 	

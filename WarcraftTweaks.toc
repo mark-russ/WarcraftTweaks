@@ -2,7 +2,7 @@
 ## Title: Warcraft Tweaks
 ## Notes: Modifications for the Dragonflight UI.
 ## Author: Mithindis
-## Version: 1.2.1
+## Version: 1.3
 ## SavedVariables: WarcraftTweaks
 ## X-WoWI-ID: 26440
 

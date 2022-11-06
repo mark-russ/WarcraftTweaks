@@ -48,7 +48,7 @@ function LibAddon:OnInitialize()
 	for _, mod in ipairs(WTweaks.Modules) do
 		mod:OnModuleRegistered()
 	end
-
+	
 	-- As events happen, notify.
 	WTweaks.Frames.Main:SetScript("OnEvent", function(self, event, ...)
 		for _, callback in pairs(WTweaks.NativeEvents[event]) do

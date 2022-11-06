@@ -4,6 +4,28 @@ local Module = WTweaks:RegisterModule("General")
 
 function Module:OnModuleRegistered()
 	WTweaks:AddOptionPage(AddonName, "General", nil)
+
+	-- Can be found through GetGameMessageInfo.
+	Module.BlacklistedMessageTypes = {
+		-- Cooldowns
+		[LE_GAME_ERR_SPELL_COOLDOWN] = true,
+		[LE_GAME_ERR_ABILITY_COOLDOWN] = true,
+
+		-- Target needs to be in front of you.
+		[LE_GAME_ERR_SPELL_FAILED_S] = true,
+
+		-- Out of range.
+		[LE_GAME_ERR_OUT_OF_RANGE] = true,
+		[LE_GAME_ERR_SPELL_OUT_OF_RANGE] = true,
+
+		[LE_GAME_ERR_NO_ATTACK_TARGET] = true,
+		[LE_GAME_ERR_GENERIC_NO_TARGET] = true,
+
+		[LE_GAME_ERR_NOT_WHILE_MOVING] = true,
+		[LE_GAME_ERR_BADATTACKFACING] = true,
+		[LE_GAME_ERR_BADATTACKPOS] = true
+	}
+
     Module:Init()
 end
 
@@ -119,10 +141,22 @@ function Module:UpdateMicroBarState()
 end
 
 function Module:UpdateErrorTextState()
-	if not Module.Settings.General.ShowErrorText then
-		UIErrorsFrame:Hide()
-	else
-		UIErrorsFrame:Show()
+	-- Backup original function.
+	if not Module.Settings.General.ShowErrorText and not Module.BlizzardShouldDisplayMessageTypeFunc then
+		Module.BlizzardShouldDisplayMessageTypeFunc = UIErrorsFrame.ShouldDisplayMessageType
+
+		UIErrorsFrame.ShouldDisplayMessageType = function(self, messageType, message)
+			if Module.BlacklistedMessageTypes[messageType] then
+				return false
+			end
+
+			---- If it's allowed through our implementation, forward to Blizzard's implementation.
+			return Module.BlizzardShouldDisplayMessageTypeFunc(self, messageType, message)
+		end
+	-- Restore original function.
+	elseif Module.Settings.General.ShowErrorText and Module.BlizzardShouldDisplayMessageTypeFunc then
+		UIErrorsFrame.ShouldDisplayMessageType = Module.BlizzardShouldDisplayMessageTypeFunc
+		Module.BlizzardShouldDisplayMessageTypeFunc = nil
 	end
 end
 

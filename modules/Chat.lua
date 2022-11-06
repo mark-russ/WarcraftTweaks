@@ -23,8 +23,23 @@ function Module:Init(isRefreshing)
 		Module:LoadChatHistory()
 	end
 
-	Module:HookChatEvents()
-	Module:UpdateChatSettings()
+	-- Apply chat styling.
+	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Chat.ChatFont)
+
+	for i = 1, NUM_CHAT_WINDOWS do
+		local chatFrame = _G["ChatFrame"..i]
+
+		if Module.Settings.Chat.MaxHistoryCount > 0 then
+			WTweaks:HookSecure(chatFrame, "AddMessage", function(frame, ...)
+				if Module.IsHistoryLoaded then
+					tinsert(Module.Settings.Chat.History[i], { ... })
+				end
+			end)
+		end
+
+		local fontHeight = select(2, chatFrame:GetFont());
+		chatFrame:SetFont(fontFile, fontHeight, Module.Settings.Chat.ShowChatOutline and "OUTLINE" or "")
+	end
 end
 
 function Module:OnPlayerDisconnect()
@@ -46,7 +61,7 @@ function Module:LoadChatHistory()
 	if Module.IsHistoryLoaded == false then
 		-- Populate the chat windows with the chat history.
 		for i = 1, NUM_CHAT_WINDOWS do
-			local frameName = "ChatFrame"..i
+			local chatFrame = _G["ChatFrame"..i]
 
 			if Module.Settings.Chat.History[i] == nil then
 				Module.Settings.Chat.History[i] = {}
@@ -54,10 +69,10 @@ function Module:LoadChatHistory()
 
 			-- Add history messages to chat frame.
 			if Module.Settings.Chat.MaxHistoryCount > 0 then
-				_G[frameName]:Clear()
+				chatFrame:Clear()
 				
 				for _, chatMessage in pairs(Module.Settings.Chat.History[i]) do
-					_G[frameName]:AddMessage(unpack(chatMessage))
+					chatFrame:AddMessage(unpack(chatMessage))
 				end
 			end
 		end
@@ -103,42 +118,29 @@ function Module:GetConfig()
 					desc = "Maximum amount of messages to keep in history.",
 					order = 3,
 					type = "range",
-					default = 50,
-					step = 1,
+					default = 0,
+					step = 10,
 					min = 0,
-					max = 300
+					max = 100
+				},
+				ClearHistory = {
+					name = "Clear History",
+					desc = "Clears both the chat history and all chat windows.",
+					order = 4,
+					type = "execute",
+					confirm = function()
+						return "Are you sure you want to clear the history (including chat window)?"
+					end,
+					func = function()
+						for i = 1, NUM_CHAT_WINDOWS do
+							_G["ChatFrame"..i]:Clear()
+							Module.Settings.Chat.History[i] = {}
+						end
+					end
 				}
 			}
 		}
     }
-end
-
-function Module:HookChatEvents()
-	if Module.Settings.Chat.MaxHistoryCount == 0 then
-		return
-	end
-
-	for i = 1, NUM_CHAT_WINDOWS do
-		local frameName = "ChatFrame"..i
-		
-		WTweaks:HookSecure(_G[frameName], "AddMessage", function(frame, ...)
-			if not Module.IsHistoryLoaded then
-				return
-			end
-
-			tinsert(Module.Settings.Chat.History[i], { ... })
-		end)
-	end
-end
-
-function Module:UpdateChatSettings()
-	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Chat.ChatFont)
-
-	for i = 1, NUM_CHAT_WINDOWS do
-		local chatFrame = _G["ChatFrame"..i]
-		local fontHeight = select(2, chatFrame:GetFont());
-		chatFrame:SetFont(fontFile, fontHeight, Module.Settings.Chat.ShowChatOutline and "OUTLINE" or "")
-	end
 end
 
 -- Function copied from Blizzard's ChatFrame.lua

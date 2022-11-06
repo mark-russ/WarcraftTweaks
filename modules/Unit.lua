@@ -31,6 +31,10 @@ function Module:GetConfig()
 			order = 2,
 			inline = true,
 			args = {
+                Heading = {
+                    name = "Misc",
+                    type = "header"
+                },
 				Font = {
 					name = "Font",
                     dialogControl = "LSM30_Font",
@@ -67,7 +71,8 @@ function Module:GetConfig()
                             name = "Customize Health Bars",
                             desc = "If checked, health bars will be styled",
                             type = "toggle",
-                            default = false
+                            default = false,
+                            width = "full"
                         },
                         BarTexture = {
                             name = "Health Bar",
@@ -106,7 +111,8 @@ function Module:GetConfig()
                             name = "Customize Power Bars",
                             desc = "If checked, power bars will be styled",
                             type = "toggle",
-                            default = false
+                            default = false,
+                            width = "full"
                         },
                         BarTexture = {
                             name = "Power Bar",

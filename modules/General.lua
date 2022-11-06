@@ -87,8 +87,8 @@ function Module:GetConfig()
 					width = 1.5
                 },
                 ShowErrorText = {
-                    name = "Show red error text",
-                    desc = "If unchecked, the red error text will be hidden.",
+                    name = "Show all error text",
+                    desc = "If unchecked, red error text will be limited to less spammy stuff.",
                     type = "toggle",
                     default = true,
 					order = 4,

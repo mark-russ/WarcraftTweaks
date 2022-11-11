@@ -17,17 +17,33 @@ function Module:OnProfileChanged()
 end
 
 function Module:Init(isRefreshing)
+	if not Module.Settings.Chat.IsEnabled then
+		-- If module is being unloaded then reload the UI.
+		if Module.IsLoaded then
+			ReloadUI()
+		end
+
+		return
+	end
+	Module.IsLoaded = true
+
 	if not isRefreshing then
 		Module.IsHistoryLoaded = false
 		Module.IsEnabled = false
 		Module:LoadChatHistory()
 	end
 
+	Module.ChatOutline = Module.Settings.Chat.ShowChatOutline and "OUTLINE" or ""
+
 	-- Apply chat styling.
 	local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Chat.ChatFont)
 
+	-- Chat edit box.
+	ChatFontNormal:SetFont(fontFile, Module.Settings.Chat.ChatFontSize, Module.ChatOutline)
+
 	for i = 1, NUM_CHAT_WINDOWS do
 		local chatFrame = _G["ChatFrame"..i]
+		chatFrame:SetFont(fontFile, select(2, chatFrame:GetFont()), Module.ChatOutline)
 
 		if Module.Settings.Chat.MaxHistoryCount > 0 then
 			WTweaks:HookSecure(chatFrame, "AddMessage", function(frame, ...)
@@ -36,9 +52,6 @@ function Module:Init(isRefreshing)
 				end
 			end)
 		end
-
-		local fontHeight = select(2, chatFrame:GetFont());
-		chatFrame:SetFont(fontFile, fontHeight, Module.Settings.Chat.ShowChatOutline and "OUTLINE" or "")
 	end
 end
 
@@ -46,10 +59,7 @@ function Module:OnPlayerDisconnect()
 	-- If there are more saved messages in the history table than allowed, purge them.
 	for i = 1, NUM_CHAT_WINDOWS do
 		local amountToDelete = getn(Module.Settings.Chat.History[i]) - Module.Settings.Chat.MaxHistoryCount
-
-		for j = 1, amountToDelete do
-			tremove(Module.Settings.Chat.History[i], 1)
-		end
+		Module.Settings.Chat.History[i] = { unpack(Module.Settings.Chat.History[i], amountToDelete + 1) }
 	end
 end
 
@@ -89,6 +99,14 @@ function Module:GetConfig()
 			order = 2,
 			inline = true,
 			args = {
+                IsEnabled = {
+                    name = "Enable Module",
+                    desc = "If checked, chat will become adjustable.",
+                    type = "toggle",
+                    default = false,
+					order = 0,
+					width = "full"
+                },
 				ChatFont = {
 					name = "Font",
                     dialogControl = "LSM30_Font",
@@ -105,6 +123,16 @@ function Module:GetConfig()
 					order = 1,
 					type = "toggle",
 					default = false
+				},
+				ChatFontSize = {
+					name = "Chat Textbox Font Size",
+					desc = "Affects the chat edit textbox size, this does not affect the chat font size, which is saved per-frame using Blizzard's options.",
+					order = 3,
+					type = "range",
+					default = 12,
+					step = 1,
+					min = 10,
+					max = 20
 				},
 				UseChatShortChannels = {
 					name = "Shorten channel names",
@@ -195,8 +223,14 @@ local function ChatFrame_CheckAddChannel(chatFrame, eventType, channelID)
 	return ChatFrame_AddChannel(chatFrame, C_ChatInfo.GetChannelShortcutForChannelID(channelID)) ~= nil;
 end
 
+Module.Blizzard_ChatFrame_MessageEventHandler = ChatFrame_MessageEventHandler
+
 -- Function copied from Blizzard's ChatFrame.lua
-function ChatFrame_MessageEventHandler(self, event, ...)
+_G.ChatFrame_MessageEventHandler = function(self, event, ...)
+	if not Module.Settings.Chat.IsEnabled then
+		return Module.Blizzard_ChatFrame_MessageEventHandler(self, event, ...)
+	end
+
 	if ( TextToSpeechFrame_MessageEventHandler ~= nil ) then
 		TextToSpeechFrame_MessageEventHandler(self, event, ...)
 	end
@@ -610,8 +644,15 @@ function ChatFrame_MessageEventHandler(self, event, ...)
 	end
 end
 
+Module.Blizzard_ChatFrame_AddMessageEventFilter = ChatFrame_AddMessageEventFilter
+
 -- Function copied from Blizzard's ChatFrame.lua
-function ChatFrame_AddMessageEventFilter (event, filter)
+_G.ChatFrame_AddMessageEventFilter = function(event, filter)
+	if not Module.Settings.Chat.IsEnabled then
+		Module.Blizzard_ChatFrame_AddMessageEventFilter()
+		return
+	end
+
 	assert(event and filter);
 
 	if ( chatFilters[event] ) then

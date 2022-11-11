@@ -33,12 +33,12 @@ function Module:OnProfileChanged()
     Module:Init()
 end
 
-function Module:OnInitialize(Main)
-	Main:RegisterChatCommand("tweaks", function()
+function Module:OnInitialize(main)
+	main:RegisterChatCommand("tweaks", function()
 		InterfaceOptionsFrame_OpenToCategory(AddonName)
 	end)
 	
-	Main:RegisterChatCommand("edit", function()
+	main:RegisterChatCommand("edit", function()
 		EditModeManagerFrame:Show()
 	end)
 end
@@ -98,7 +98,7 @@ function Module:GetConfig()
 					name = "+ Version: " .. WTweaks.Version,
 					type = "description",
 					width = full,
-					order = 6
+					order = 999
 				}
             }
         }

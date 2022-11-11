@@ -31,6 +31,14 @@ function Module:GetConfig()
 			order = 2,
 			inline = true,
 			args = {
+                IsEnabled = {
+                    name = "Enable Module",
+                    desc = "If checked, unit frames will become adjustable.",
+                    type = "toggle",
+                    default = false,
+					order = 0,
+					width = "full"
+                },
                 Heading = {
                     name = "Misc",
                     type = "header"
@@ -161,6 +169,17 @@ function Module:GetConfig()
 end 
 
 function Module:Init()
+	if not Module.Settings.Unit.IsEnabled then
+		-- If module is being unloaded then reload the UI.
+		if Module.IsLoaded then
+			ReloadUI()
+		end
+
+		return
+	end
+
+	Module.IsLoaded = true
+
 	Module.UnitFrames.Health.IsEnabled = Module.Settings.Unit.Health.IsEnabled
     Module.UnitFrames.Health.Texture = WTweaks.Libs.SharedMedia:Fetch("statusbar", Module.Settings.Unit.Health.BarTexture)
     Module.UnitFrames.Health.Color = WTweaks:ColorArrayToRGBA(Module.Settings.Unit.Health.BarColor)

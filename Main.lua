@@ -158,7 +158,7 @@ end
 
 function WTweaks:InitConfig()
 	WTweaks:GetConfig()
-	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults)
+	WTweaks.DB = WTweaks.Libs.AceDB:New(DBName, WTweaks.Defaults, true)
 	WTweaks.DB:RegisterDefaults(WTweaks.Defaults)
 	WTweaks:SetupConfigWatchers(WTweaks.Configuration, WTweaks.DB.profile, nil, nil)
 
@@ -351,6 +351,53 @@ end
 
 function WTweaks:AddOptionPage(label, path, parent)
 	WTweaks.Libs.AceCfgDialog:AddToBlizOptions(AddonName, label, parent, path)
+end
+
+function WTweaks:GetFontOptions(path)
+	for k, v in pairs(path) do
+		print(k)
+	end
+	
+	return {
+		path.FontFile,
+		path.FontSize,
+		path.ShowFontOutline and "OUTLINE" or "" 
+	}
+end
+
+function WTweaks:CreateFontOptions(defaultSize, minSize, maxSize, showOutline)
+	return {
+		FontFile = {
+			name = "Font",
+			dialogControl = "LSM30_Font",
+			order = 0,
+			type = "select",
+			values = function()
+				return WTweaks.Options.Fonts
+			end
+		},
+		FontSize = {
+			name = "Font Size",
+			order = 1,
+			type = "range",
+			step = 1,
+			default = defaultSize,
+			min = minSize,
+			max = maxSize
+		},
+		ShowFontOutline = {
+			name = "Font Outline",
+			order = 2,
+			type = "toggle",
+			default = showOutline
+		}
+	}
+end
+
+function WTweaks:Merge(source, destination)
+	for k, v in pairs(source) do
+		destination[k] = v
+	end
 end
 
 function WTweaks:NoOp() end

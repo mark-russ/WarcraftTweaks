@@ -198,8 +198,8 @@ function Module:Init()
     
     -- One time init code...
     if Module.UnitFrames.IsEnabled and not Module.IsInitialized then
-        Module.UnitFrames.Health.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameHealthBar)
-        Module.UnitFrames.Power.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrameManaBar)
+        Module.UnitFrames.Health.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrame.healthbar)
+        Module.UnitFrames.Power.BlizzardTexture = WTweaks:GetStatusBar(PlayerFrame.manabar)
 
         do  -- Populate loaded frames.
             local pendingFrames = {

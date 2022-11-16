@@ -184,13 +184,13 @@ function Module:VendorJunk()
 	end
 
     for bagId = 0, NUM_BAG_SLOTS do
-		local slotCount = GetContainerNumSlots(bagId)
+		local slotCount = C_Container.GetContainerNumSlots(bagId)
 
         for slotId = 1, slotCount do
-			local itemQuality = select(4, GetContainerItemInfo(bagId, slotId))
+			local itemQuality = select(4, C_Container.GetContainerItemInfo(bagId, slotId))
 			
 			if itemQuality == 0 then
-				UseContainerItem(bagId, slotId)
+				C_Container.UseContainerItem(bagId, slotId)
 			end
         end
     end

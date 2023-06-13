@@ -305,7 +305,11 @@ function Module:ApplyStyle(unitFrame)
     if Module.UnitFrames.Health.IsEnabled then
         local c = Module.UnitFrames.Health.Color
         unitFrame.Bars.Health:SetStatusBarColor(c.r, c.g, c.b, c.a)
-        unitFrame.Bars.Health:SetStatusBarTexture(Module.UnitFrames.Health.Texture)
+        unitFrame.Bars.Health:SetStatusBarTexture(Module.UnitFrames.Health.Texture, "HIGHLIGHT")
+
+        if unitFrame.Bars.HealthLoss then
+            unitFrame.Bars.HealthLoss:SetStatusBarTexture(Module.UnitFrames.Health.Texture, "BACKGROUND")
+        end
     else
         WTweaks:SetStatusBar(unitFrame.Bars.Health, Module.UnitFrames.Health.BlizzardTexture)
     end
@@ -313,7 +317,7 @@ function Module:ApplyStyle(unitFrame)
     if Module.UnitFrames.Power.IsEnabled then
         local c = Module.UnitFrames.Power.Color or Module:GetClassColor(unitFrame.Unit)
         unitFrame.Bars.Mana:SetStatusBarColor(c.r, c.g, c.b, c.a)
-        unitFrame.Bars.Mana:SetStatusBarTexture(Module.UnitFrames.Power.Texture)
+        unitFrame.Bars.Mana:SetStatusBarTexture(Module.UnitFrames.Power.Texture, "HIGHLIGHT")
     else
         UnitFrameManaBar_Update(unitFrame.Bars.Mana, unitFrame.Unit)
     end
@@ -375,12 +379,14 @@ function Module:GetNormalizedFrameDetails(frame)
         },
         Bars = {
             Health = frame.healthbar,
-            Mana = frame.manabar
+            Mana = frame.manabar,
+            HealthLoss = nil, -- Set only for player.
         }
     }
 
     if frame == PlayerFrame then
         normalized.Text.Level = PlayerLevelText
+        normalized.Bars.HealthLoss = PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.HealthBarArea.HealthBar.AnimatedLossBar
     else
         normalized.Text.Level = frame.name:GetParent().LevelText
     end

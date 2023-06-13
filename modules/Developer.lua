@@ -4,7 +4,7 @@ local Module = WTweaks:RegisterModule("Developer")
 local C = DeveloperConsole
 
 function Module:OnModuleRegistered()
-    
+    print((select(4, GetBuildInfo())))
 end
 
 function Module:OnInitialize(main)

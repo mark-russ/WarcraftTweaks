@@ -2,9 +2,11 @@
 ## Title: Warcraft Tweaks
 ## Notes: Modifications for the Dragonflight UI.
 ## Author: Mithindis
-## Version: 1.5.2
+## Version: 1.6
 ## SavedVariables: WarcraftTweaks
 ## X-WoWI-ID: 26440
+## IconTexture: 4279397
+## AddonCompartmentFunc: InterfaceOptionsFrame_OpenToCategory
 
 embeds.xml
 Main.lua
@@ -13,6 +15,7 @@ modules/Bag.lua
 modules/Chat.lua
 modules/Unit.lua
 modules/ObjectiveTracker.lua
+modules/Minimap.lua
 modules/Typography.lua
 modules/Profile.lua
 #modules/Developer.lua

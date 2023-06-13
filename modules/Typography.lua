@@ -35,7 +35,15 @@ function Module:Init()
 			TargetMap = {
 				-- Character screen font, titles, tabs, reputation, action bars.
 				Title = { GameFontNormal },
-				Body = { GameFontNormalSmall }
+				Body = { GameFontNormalSmall },
+				BodySecondary = { GameFontHighlightSmall }
+			}
+		},
+		{
+			From = T.Minimap,
+			TargetMap = {
+				Name = { MinimapZoneText },
+				Time = { WhiteNormalNumberFont }
 			}
 		},
 		{
@@ -58,7 +66,7 @@ function Module:Init()
 			From = T.Zone,
 			TargetMap = {
 				Main = { ZoneTextFont },
-				Subzone = { SubZoneTextFont }
+				Subzone = { SubZoneTextFont, PVPInfoTextFont },
 			}
 		}
 	}
@@ -119,11 +127,39 @@ function Module:GetConfig()
 							order = 1,
 							inline = true,
 							args = WTweaks:CreateFontOptions(10, 8, 20)
+						},
+						BodySecondary = {
+							name = "Body (Secondary)",
+							type = "group",
+							order = 2,
+							inline = true,
+							args = WTweaks:CreateFontOptions(10, 8, 20)
+						}
+					}
+				},
+				Minimap = {
+					name = "Minimap",
+					type = "group",
+					order = 1,
+					args = {
+						Name = {
+							name = "Zone Name",
+							type = "group",
+							order = 0,
+							inline = true,
+							args = WTweaks:CreateFontOptions(12, 8, 20)
+						},
+						Time = {
+							name = "Time",
+							type = "group",
+							order = 0,
+							inline = true,
+							args = WTweaks:CreateFontOptions(12, 8, 20)
 						}
 					}
 				},
 				Dialogue = {
-					name = "Dialogue",
+					name = "Quest Window",
 					type = "group",
 					order = 1,
 					args = {

@@ -55,7 +55,6 @@ function LibAddon:OnInitialize()
 			callback(...)
 		end
 	end)
-	
 end
 
 function WTweaks:LoadSharedMedia()

@@ -2,6 +2,9 @@ local AddonName, WTweaks = ...
 
 local Module = WTweaks:RegisterModule("General")
 
+local BAG_BAR_FADE_SPEED = 0.1
+local wasBagsBarHoverHooked = false
+
 function Module:OnModuleRegistered()
 	WTweaks:AddOptionPage(AddonName, "General", nil)
 
@@ -26,7 +29,7 @@ function Module:OnModuleRegistered()
 		[LE_GAME_ERR_BADATTACKPOS] = true
 	}
 	
-    Module:Init()
+	Module:Init()
 end
 
 function Module:OnProfileChanged()
@@ -49,6 +52,7 @@ end
 
 function Module:Init()
 	Module:UpdateMicroBarState()
+	Module:UpdateBagBarState()
 	Module:UpdateXPBarState()
 	Module:UpdateErrorTextState()
 	Module:UpdateRestedXPIndicatorState()
@@ -77,6 +81,17 @@ function Module:GetConfig()
                     default = true,
 					order = 2,
 					width = 1.5
+                },
+                BagBarVisibility = {
+                    name = "Bag bar visibility",
+                    desc = "If auto, it will appear if mouse is over the area.",
+                    type = "select",
+                    values = {
+                        hidden = "Always Hidden",
+                        auto = "Auto",
+                        always = "Always Shown"
+                    },
+                    default = "always"
                 },
                 ShowRestedXP = {
                     name = "Show resting indicator",
@@ -128,15 +143,28 @@ function Module:UpdateMicroBarState()
 	end)
 
 	if not Module.Settings.General.ShowMicroBar then
-		MicroButtonAndBagsBar:Hide()
+		MicroMenuContainer:Hide()
 		QueueStatusButton:SetParent(UIParent)
 		QueueStatusButton:ClearAllPoints()
 		QueueStatusButton:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -3, 3)
 	else
-		MicroButtonAndBagsBar:Show()
-		QueueStatusButton:SetParent(MicroButtonAndBagsBar)
+		MicroMenuContainer:Show()
+		QueueStatusButton:SetParent(MicroMenuContainer)
 		QueueStatusButton:ClearAllPoints()
-		QueueStatusButton:SetPoint("BOTTOMLEFT", MicroButtonAndBagsBar, "BOTTOMLEFT", -45, 0)
+		QueueStatusButton:SetPoint("BOTTOMLEFT", MicroMenuContainer, "BOTTOMLEFT", -45, 0)
+	end
+end
+
+function Module:UpdateBagBarState()
+	if Module.Settings.General.BagBarVisibility == "hidden" then
+		Module:UnhookBagBarFader()
+		BagsBar:Hide()
+	elseif Module.Settings.General.BagBarVisibility == "always" then
+		Module:UnhookBagBarFader()
+		BagsBar:Show()
+	else
+		UIFrameFadeOut(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 0.0)
+		Module:HookBagBarFader()
 	end
 end
 
@@ -166,4 +194,51 @@ function Module:UpdateRestedXPIndicatorState()
 	else
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual.PlayerRestLoop:SetAlpha(1)
 	end
+end
+
+function Module:UnhookBagBarFader()
+	if not wasBagsBarHoverHooked then
+		return
+	end
+
+	BagsBar:SetAlpha(1.0)
+	BagsBar:SetScript("OnEnter", nil)
+	BagsBar:SetScript("OnLeave", nil)
+
+	for i=1, select("#", BagsBar:GetChildren()) do
+		local ChildFrame = select(i, BagsBar:GetChildren())
+		ChildFrame:SetScript("OnEnter", nil)
+		ChildFrame:SetScript("OnLeave", nil)
+	end
+	
+	wasBagsBarHoverHooked = false
+end
+
+function Module:HookBagBarFader()
+	if wasBagsBarHoverHooked then
+		return
+	end
+
+	BagsBar:SetAlpha(0.0)
+	BagsBar:SetScript("OnEnter", function()
+		UIFrameFadeIn(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 1.0)
+	end)
+	
+	BagsBar:SetScript("OnLeave", function()
+		UIFrameFadeOut(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 0.0)
+	end)
+
+	for i=1, select("#", BagsBar:GetChildren()) do
+		local ChildFrame = select(i, BagsBar:GetChildren())
+		
+		ChildFrame:SetScript("OnEnter", function()
+			UIFrameFadeIn(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 1.0)
+		end)
+		
+		ChildFrame:SetScript("OnLeave", function()
+			UIFrameFadeOut(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 0.0)
+		end)
+	end
+	
+	wasBagsBarHoverHooked = true
 end

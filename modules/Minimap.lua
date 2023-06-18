@@ -2,7 +2,6 @@ local AddonName, WTweaks = ...
 
 local Module = WTweaks:RegisterModule("Minimap")
 Module.IsMoving = false
-Module.IsInitialized = false
 Module.CurrentMapID = nil
 Minimap.IsLayoutFlipped = MinimapCluster:GetSettingValueBool(Enum.EditModeMinimapSetting.HeaderUnderneath)
 
@@ -12,69 +11,8 @@ function Module:OnModuleRegistered()
     WTweaks:HookEvent("ADDON_LOADED", function(addonName)
         if addonName == "Blizzard_HybridMinimap" then
             HybridMinimap.CircleMask:Hide()
-        elseif addonName == "Blizzard_TimeManager" then
-            GameTimeFrame:ClearAllPoints()
-            GameTimeFrame:SetFrameStrata("LOW")
-            GameTimeFrame:SetFrameLevel(5)
-            GameTimeFrame:SetParent(Minimap.HeaderBar)
-            GameTimeFrame:SetPoint("RIGHT", Minimap.HeaderBar, "RIGHT", 0, -1)
-            
-            TimeManagerClockButton:ClearAllPoints()
-            TimeManagerClockButton:SetFrameStrata("LOW")
-            TimeManagerClockButton:SetFrameLevel(5)
-            TimeManagerClockButton:SetParent(Minimap.HeaderBar)
-            TimeManagerClockButton:SetPoint("RIGHT", GameTimeFrame, "LEFT", 0, 0)
         end
     end)
-
-    Module:Init()
-end
-
-function Module:SyncCoordinates(isMapChanging)
-    if Module.Settings.Minimap.Coordinates.CoordinatesVisibility ~= "hidden" then
-        Module.CurrentMapID = C_Map.GetBestMapForUnit("PLAYER")
-    
-        if isMapChanging then
-            Minimap.CoordinateFrame:SetTextColor(MinimapZoneText:GetTextColor())
-        end
-    
-        if Module.CurrentMapID ~= nil then
-            local position = C_Map.GetPlayerMapPosition(Module.CurrentMapID, "PLAYER")
-        
-            if position ~= nil then
-                local x = math.ceil(position.x * 10000) / 100
-                local y = math.ceil(position.y * 10000) / 100
-                Minimap.CoordinateFrame:SetText(x .. ", " .. y)
-                Minimap.CoordinateFrame:Show()
-            else
-                Minimap.CoordinateFrame:Hide()
-            end
-        end
-    end
-end
-
-function Module:OnSettingChanged(settings, groupName)
-	if groupName == "IsEnabled" then
-        ReloadUI()
-	end
-
-    if groupName == "UseEmbeddedAddons" then
-        if Module.Settings.Minimap.UseEmbeddedAddons then
-            Module:EmbedAddons()
-        else
-            ReloadUI()
-        end
-    end
-end
-
-function Module:OnProfileChanged()
-    Module:Init()
-end
-
-function Module:Init()
-    if Module.IsInitialized then
-        return
-    end
 
     EditModeSystemSettingsDialog:HookScript("OnHide", function()
         if Module.IsMoving then
@@ -85,8 +23,6 @@ function Module:Init()
         
         Module:ReanchorMinimapContainer()
     end)
-
-    WTweaks:HookEvent("PLAYER_LOGIN", Module.OnPlayerConnect)
 
 	GetMinimapShape = function()
         return "SQUARE"
@@ -137,9 +73,102 @@ function Module:Init()
     end
     
     Module:UpdateLayout()
+end
 
-    --Minimap.IndicatorTray:Update()
-    Module.IsInitialized = true
+function Module:OnStarted()
+    -- Calendar
+    GameTimeFrame:ClearAllPoints()
+    GameTimeFrame:SetFrameStrata("LOW")
+    GameTimeFrame:SetFrameLevel(5)
+    GameTimeFrame:SetParent(Minimap.HeaderBar)
+    GameTimeFrame:SetPoint("RIGHT", Minimap.HeaderBar, "RIGHT", 0, -1)
+    
+    -- Time
+    TimeManagerClockButton:ClearAllPoints()
+    TimeManagerClockButton:SetFrameStrata("LOW")
+    TimeManagerClockButton:SetFrameLevel(5)
+    TimeManagerClockButton:SetParent(Minimap.HeaderBar)
+    TimeManagerClockButton:SetPoint("RIGHT", GameTimeFrame, "LEFT", 0, 0)
+
+    -- Expansion Button
+    ExpansionLandingPageMinimapButton:Hide()
+
+    QueueStatusButton:SetScale(0.5)
+    QueueStatusButton.UpdatePosition = WTweaks.NoOp
+    
+    Minimap.IndicatorTray:Add(MiniMapCraftingOrderIcon:GetParent(), false, false)
+    Minimap.IndicatorTray:Add(MiniMapMailIcon:GetParent(), false, false)
+    Minimap.IndicatorTray:Add(QueueStatusButton, true, true)
+    
+    if Module.Settings.Minimap.UseEmbeddedAddons then
+        Module:EmbedAddons()
+    end
+
+    Module:ReanchorMinimapContainer()
+
+    Minimap.HeaderBar:SetAlpha(0)
+    WTweaks:HookFader(Minimap.HeaderBar, {
+        Minimap,
+        GameTimeFrame,
+        TimeManagerClockButton,
+        MinimapCluster.ZoneTextButton
+    }, 0.1)
+
+    Minimap.FooterBar:SetAlpha(0)
+    WTweaks:HookFader(Minimap.FooterBar, {
+        Minimap,
+        AddonCompartmentFrame,
+        MinimapCluster.IndicatorFrame,
+        MinimapCluster.Tracking,
+        MinimapCluster.Tracking.Button,
+        Minimap.ZoomIn,
+        Minimap.ZoomOut
+    }, 0.1)
+    
+    Minimap.ZoomIn:Show()
+    Minimap.ZoomIn.Hide = Minimap.ZoomIn.Show
+
+    Minimap.ZoomOut:Show()
+    Minimap.ZoomOut.Hide = Minimap.ZoomOut.Show
+
+    MiniMapIndicatorFrame_UpdatePosition()
+end
+
+function Module:SyncCoordinates(isMapChanging)
+    if Module.Settings.Minimap.Coordinates.CoordinatesVisibility ~= "hidden" then
+        Module.CurrentMapID = C_Map.GetBestMapForUnit("PLAYER")
+    
+        if isMapChanging then
+            Minimap.CoordinateFrame:SetTextColor(MinimapZoneText:GetTextColor())
+        end
+    
+        if Module.CurrentMapID ~= nil then
+            local position = C_Map.GetPlayerMapPosition(Module.CurrentMapID, "PLAYER")
+        
+            if position ~= nil then
+                local x = math.ceil(position.x * 10000) / 100
+                local y = math.ceil(position.y * 10000) / 100
+                Minimap.CoordinateFrame:SetText(x .. ", " .. y)
+                Minimap.CoordinateFrame:Show()
+            else
+                Minimap.CoordinateFrame:Hide()
+            end
+        end
+    end
+end
+
+function Module:OnSettingChanged(settings, groupName)
+	if groupName == "IsEnabled" then
+        ReloadUI()
+	end
+
+    if groupName == "UseEmbeddedAddons" then
+        if Module.Settings.Minimap.UseEmbeddedAddons then
+            Module:EmbedAddons()
+        else
+            ReloadUI()
+        end
+    end
 end
 
 function Module:UpdateLayout()
@@ -342,48 +371,6 @@ function Module:ReanchorMinimapContainer()
     
     MinimapCluster.MinimapContainer:ClearAllPoints()
     MinimapCluster.MinimapContainer:SetPoint(anchor, MinimapCluster, anchor, margin.X, margin.Y)
-    MiniMapIndicatorFrame_UpdatePosition()
-end
-
-function Module:OnPlayerConnect()
-    QueueStatusButton:SetScale(0.5)
-    QueueStatusButton.UpdatePosition = WTweaks.NoOp
-    Minimap.IndicatorTray:Add(MiniMapCraftingOrderIcon:GetParent(), false, false)
-    Minimap.IndicatorTray:Add(MiniMapMailIcon:GetParent(), false, false)
-    Minimap.IndicatorTray:Add(QueueStatusButton, true, true)
-    ExpansionLandingPageMinimapButton:Hide()
-    
-    if Module.Settings.Minimap.UseEmbeddedAddons then
-        Module:EmbedAddons()
-    end
-
-    Module:ReanchorMinimapContainer()
-
-    Minimap.HeaderBar:SetAlpha(0)
-    WTweaks:HookFader(Minimap.HeaderBar, {
-        Minimap,
-        GameTimeFrame,
-        TimeManagerClockButton,
-        MinimapCluster.ZoneTextButton
-    }, 0.1)
-
-    Minimap.FooterBar:SetAlpha(0)
-    WTweaks:HookFader(Minimap.FooterBar, {
-        Minimap,
-        AddonCompartmentFrame,
-        MinimapCluster.IndicatorFrame,
-        MinimapCluster.Tracking,
-        MinimapCluster.Tracking.Button,
-        Minimap.ZoomIn,
-        Minimap.ZoomOut
-    }, 0.1)
-    
-    Minimap.ZoomIn:Show()
-    Minimap.ZoomIn.Hide = Minimap.ZoomIn.Show
-
-    Minimap.ZoomOut:Show()
-    Minimap.ZoomOut.Hide = Minimap.ZoomOut.Show
-
     MiniMapIndicatorFrame_UpdatePosition()
 end
 

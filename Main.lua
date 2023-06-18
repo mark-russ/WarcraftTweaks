@@ -49,6 +49,14 @@ function LibAddon:OnInitialize()
 		mod:OnModuleRegistered()
 	end
 	
+    WTweaks:HookEvent("PLAYER_LOGIN", function()
+		for _, module in ipairs(WTweaks.Modules) do
+			if module.OnStarted then
+				module:OnStarted(self)
+			end
+		end
+	end)
+	
 	-- As events happen, notify.
 	WTweaks.Frames.Main:SetScript("OnEvent", function(self, event, ...)
 		for _, callback in pairs(WTweaks.NativeEvents[event]) do

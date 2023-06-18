@@ -12,10 +12,6 @@ function Module:OnSettingChanged(settings, groupName)
     Module:Init(true)
 end
 
-function Module:OnProfileChanged()
-    Module:Init(false)
-end
-
 function Module:Init(isRefreshing)
 	if not Module.Settings.Chat.IsEnabled then
 		-- If module is being unloaded then reload the UI.

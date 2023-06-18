@@ -12,10 +12,6 @@ function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
 
-function Module:OnProfileChanged()
-    Module:Init()
-end
-
 function Module:Init()
 	if not Module.Settings.Typography.IsEnabled then
 		-- If module is being unloaded then reload the UI.

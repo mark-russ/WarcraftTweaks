@@ -15,6 +15,7 @@ modules/Bag.lua
 modules/Chat.lua
 modules/Unit.lua
 modules/ObjectiveTracker.lua
+modules/Mail.lua
 modules/Minimap.lua
 modules/Typography.lua
 modules/Profile.lua

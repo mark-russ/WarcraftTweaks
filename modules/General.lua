@@ -144,14 +144,14 @@ function Module:UpdateMicroBarState()
 
 	if not Module.Settings.General.ShowMicroBar then
 		MicroMenuContainer:Hide()
-		QueueStatusButton:SetParent(UIParent)
-		QueueStatusButton:ClearAllPoints()
-		QueueStatusButton:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -3, 3)
+		--QueueStatusButton:SetParent(UIParent)
+		--QueueStatusButton:ClearAllPoints()
+		--QueueStatusButton:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -3, 3)
 	else
 		MicroMenuContainer:Show()
-		QueueStatusButton:SetParent(MicroMenuContainer)
-		QueueStatusButton:ClearAllPoints()
-		QueueStatusButton:SetPoint("BOTTOMLEFT", MicroMenuContainer, "BOTTOMLEFT", -45, 0)
+		--QueueStatusButton:SetParent(MicroMenuContainer)
+		--QueueStatusButton:ClearAllPoints()
+		--QueueStatusButton:SetPoint("BOTTOMLEFT", MicroMenuContainer, "BOTTOMLEFT", -45, 0)
 	end
 end
 
@@ -220,25 +220,14 @@ function Module:HookBagBarFader()
 	end
 
 	BagsBar:SetAlpha(0.0)
-	BagsBar:SetScript("OnEnter", function()
-		UIFrameFadeIn(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 1.0)
-	end)
-	
-	BagsBar:SetScript("OnLeave", function()
-		UIFrameFadeOut(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 0.0)
-	end)
+	WTweaks:HookFader(BagsBar, { BagsBar, unpack({ BagsBar:GetChildren() }) }, BAG_BAR_FADE_SPEED)
 
-	for i=1, select("#", BagsBar:GetChildren()) do
-		local ChildFrame = select(i, BagsBar:GetChildren())
-		
-		ChildFrame:SetScript("OnEnter", function()
-			UIFrameFadeIn(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 1.0)
-		end)
-		
-		ChildFrame:SetScript("OnLeave", function()
-			UIFrameFadeOut(BagsBar, BAG_BAR_FADE_SPEED, BagsBar:GetAlpha(), 0.0)
-		end)
-	end
-	
 	wasBagsBarHoverHooked = true
 end
+
+
+--WTweaks:HookEvent("UPDATE_PENDING_MAIL", function()
+--	if HasNewMail() then
+--	--    print("MAIL RECEIVED")
+--	end
+--end)

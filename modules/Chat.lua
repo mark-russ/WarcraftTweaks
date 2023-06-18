@@ -76,10 +76,10 @@ end
 
 function Module:SaveEditBoxState()
 	Module.Settings.Chat.LastTellTarget, Module.Settings.Chat.LastTellType = ChatEdit_GetLastTellTarget()
-	Module.Settings.Chat.EditBox.TellTarget = ChatFrame1.editBox:GetAttribute("tellTarget")
-	Module.Settings.Chat.EditBox.ChannelTarget = ChatFrame1.editBox:GetAttribute("channelTarget")
-	Module.Settings.Chat.EditBox.ChatType = ChatFrame1.editBox:GetAttribute("chatType")
-	Module.Settings.Chat.EditBox.StickyType = ChatFrame1.editBox:GetAttribute("stickyType")
+	Module.Settings.Chat.EditBox.TellTarget = DEFAULT_CHAT_FRAME.editBox:GetAttribute("tellTarget")
+	Module.Settings.Chat.EditBox.ChannelTarget = DEFAULT_CHAT_FRAME.editBox:GetAttribute("channelTarget")
+	Module.Settings.Chat.EditBox.ChatType = DEFAULT_CHAT_FRAME.editBox:GetAttribute("chatType")
+	Module.Settings.Chat.EditBox.StickyType = DEFAULT_CHAT_FRAME.editBox:GetAttribute("stickyType")
 end
 
 function Module:RestoreEditBoxState()
@@ -88,19 +88,19 @@ function Module:RestoreEditBoxState()
 	end
 	
 	if Module.Settings.Chat.EditBox.TellTarget then
-		ChatFrame1.editBox:SetAttribute("tellTarget", 		Module.Settings.Chat.EditBox.TellTarget)
+		DEFAULT_CHAT_FRAME.editBox:SetAttribute("tellTarget", 		Module.Settings.Chat.EditBox.TellTarget)
 	end
 
 	if Module.Settings.Chat.EditBox.ChannelTarget then
-		ChatFrame1.editBox:SetAttribute("channelTarget", 	Module.Settings.Chat.EditBox.ChannelTarget)
+		DEFAULT_CHAT_FRAME.editBox:SetAttribute("channelTarget", 	Module.Settings.Chat.EditBox.ChannelTarget)
 	end
 		
 	if Module.Settings.Chat.EditBox.ChatType then
-		ChatFrame1.editBox:SetAttribute("chatType", 	Module.Settings.Chat.EditBox.ChatType)
+		DEFAULT_CHAT_FRAME.editBox:SetAttribute("chatType", 	Module.Settings.Chat.EditBox.ChatType)
 	end
 		
 	if Module.Settings.Chat.EditBox.StickyType then
-		ChatFrame1.editBox:SetAttribute("stickyType", 	Module.Settings.Chat.EditBox.StickyType)
+		DEFAULT_CHAT_FRAME.editBox:SetAttribute("stickyType", 	Module.Settings.Chat.EditBox.StickyType)
 	end
 end
 

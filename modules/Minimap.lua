@@ -3,10 +3,54 @@ local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("Minimap")
 Module.IsMoving = false
 Module.IsInitialized = false
+Module.CurrentMapID = nil
+Minimap.IsLayoutFlipped = MinimapCluster:GetSettingValueBool(Enum.EditModeMinimapSetting.HeaderUnderneath)
 
 function Module:OnModuleRegistered()
 	WTweaks:AddOptionPage(Module.Name, "Minimap", AddonName)
+
+    WTweaks:HookEvent("ADDON_LOADED", function(addonName)
+        if addonName == "Blizzard_HybridMinimap" then
+            HybridMinimap.CircleMask:Hide()
+        elseif addonName == "Blizzard_TimeManager" then
+            GameTimeFrame:ClearAllPoints()
+            GameTimeFrame:SetFrameStrata("LOW")
+            GameTimeFrame:SetFrameLevel(5)
+            GameTimeFrame:SetParent(Minimap.HeaderBar)
+            GameTimeFrame:SetPoint("RIGHT", Minimap.HeaderBar, "RIGHT", 0, -1)
+            
+            TimeManagerClockButton:ClearAllPoints()
+            TimeManagerClockButton:SetFrameStrata("LOW")
+            TimeManagerClockButton:SetFrameLevel(5)
+            TimeManagerClockButton:SetParent(Minimap.HeaderBar)
+            TimeManagerClockButton:SetPoint("RIGHT", GameTimeFrame, "LEFT", 0, 0)
+        end
+    end)
+
     Module:Init()
+end
+
+function Module:SyncCoordinates(isMapChanging)
+    if Module.Settings.Minimap.Coordinates.CoordinatesVisibility ~= "hidden" then
+        Module.CurrentMapID = C_Map.GetBestMapForUnit("PLAYER")
+    
+        if isMapChanging then
+            Minimap.CoordinateFrame:SetTextColor(MinimapZoneText:GetTextColor())
+        end
+    
+        if Module.CurrentMapID ~= nil then
+            local position = C_Map.GetPlayerMapPosition(Module.CurrentMapID, "PLAYER")
+        
+            if position ~= nil then
+                local x = math.ceil(position.x * 10000) / 100
+                local y = math.ceil(position.y * 10000) / 100
+                Minimap.CoordinateFrame:SetText(x .. ", " .. y)
+                Minimap.CoordinateFrame:Show()
+            else
+                Minimap.CoordinateFrame:Hide()
+            end
+        end
+    end
 end
 
 function Module:OnSettingChanged(settings, groupName)
@@ -28,7 +72,7 @@ function Module:OnProfileChanged()
 end
 
 function Module:Init()
-    if not Module.Settings.Minimap.IsEnabled or Module.IsInitialized then
+    if Module.IsInitialized then
         return
     end
 
@@ -42,59 +86,194 @@ function Module:Init()
         Module:ReanchorMinimapContainer()
     end)
 
-    WTweaks:HookEvent("PLAYER_ENTERING_WORLD", Module.OnPlayerConnect)
+    WTweaks:HookEvent("PLAYER_LOGIN", Module.OnPlayerConnect)
 
 	GetMinimapShape = function()
         return "SQUARE"
 	end
-
+    
 	MinimapCluster:EnableMouse(false)
     MinimapCompassTexture:Hide()
 
+    Minimap:SetClampedToScreen(true)
     Minimap:SetMaskTexture("Interface/BUTTONS/WHITE8X8")
     
     -- Disable the blue objective indications.
     Minimap:SetQuestBlobInsideTexture("Interface/Tooltips/UI-Tooltip-Background")
     Minimap:SetQuestBlobRingScalar(0)
     Minimap:SetQuestBlobRingAlpha(0)
-    
     Minimap:SetArchBlobInsideTexture("Interface/Tooltips/UI-Tooltip-Background")
     Minimap:SetArchBlobRingScalar(0)
     Minimap:SetArchBlobRingAlpha(0)
-    --Minimap:SetMaskTexture(167013)
 
-    GameTimeFrame:Hide()
-    
+    Module:CreateIndicatorTray()
     Module:CreateHeader()
     Module:CreateFooter()
-    
-    MinimapCluster.Tracking:Hide()
-    Minimap:SetClampedToScreen(true)
 
+    if Module.Settings.Minimap.Coordinates.CoordinatesVisibility ~= "hidden" then
+        Module:CreateCoordinateFrame()
+    end
+    
     MinimapCluster.Selection:ClearAllPoints()
     MinimapCluster.Selection:SetAllPoints(MinimapCluster, true)
     
     -- Repositioning the header does jank stuff to the layout. Override.
     MinimapCluster.Layout = WTweaks.NoOp
     
-    MinimapCluster.SetHeaderUnderneath = function(self, shouldHeaderBeUnderneath)
-        MinimapCluster.ShouldBeUnderheath = shouldHeaderBeUnderneath
-    end
-    
-    -- Instead of rescaling entire minimap, buttons and all, which looks ugly...
-    -- Let's make the minimap actually change size instead.
+    hooksecurefunc(MinimapCluster, "SetHeaderUnderneath", function(self, shouldHeaderBeUnderneath)
+        Minimap.IsLayoutFlipped = shouldHeaderBeUnderneath
+        Module:UpdateLayout()
+        Module:ReanchorMinimapContainer()
+    end)
+
+    -- Instead of rescaling entire minimap, buttons and all, which looks ugly... make the minimap actually change size instead.
     MinimapCluster.MinimapContainer.SetScale = function(self, scale)
         local size = 200 * scale
         MinimapCluster.Selection:SetSize(size, size)
         MinimapCluster:SetSize(size, size)
         MinimapCluster.MinimapContainer:SetSize(size, size)
         Minimap:SetSize(size, size)
+        Module:RepaintCanvas()
     end
     
+    Module:UpdateLayout()
+
+    --Minimap.IndicatorTray:Update()
     Module.IsInitialized = true
 end
 
+function Module:UpdateLayout()
+    Minimap.HeaderBar:ClearAllPoints()
+    Minimap.FooterBar:ClearAllPoints()
+
+    if Minimap.CoordinateFrame ~= nil then
+        Minimap.CoordinateFrame:ClearAllPoints()
+    end
+
+    if Minimap.IsLayoutFlipped then
+        Minimap.HeaderBar:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
+        Minimap.HeaderBar:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 0)
+        
+        Minimap.FooterBar:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 0, 0)
+        Minimap.FooterBar:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
+        
+        if Minimap.CoordinateFrame ~= nil then
+            Minimap.CoordinateFrame:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 0, 0)
+            Minimap.CoordinateFrame:SetPoint("RIGHT", Minimap, "RIGHT", 0, 0)
+        end
+    else
+        Minimap.HeaderBar:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 0, 0)
+        Minimap.HeaderBar:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
+
+        Minimap.FooterBar:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
+        Minimap.FooterBar:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 0)
+            
+        if Minimap.CoordinateFrame ~= nil then
+            Minimap.CoordinateFrame:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
+            Minimap.CoordinateFrame:SetPoint("RIGHT", Minimap, "RIGHT", 0, 0)
+        end
+    end
+    
+    if Module.Settings.Minimap.Coordinates.CoordinatesVisibility == "always" then
+        Minimap.CoordinateFrame:SetParent(Minimap)
+    elseif Module.Settings.Minimap.Coordinates.CoordinatesVisibility == "auto" then
+        Minimap.CoordinateFrame:SetParent(Minimap.FooterBar)
+    end
+end
+
+function Module:CreateCoordinateFrame()
+    local CoordinateFrame = Minimap:CreateFontString(nil, "BACKGROUND") 
+    Minimap.CoordinateFrame = CoordinateFrame
+    CoordinateFrame:ClearAllPoints()
+    CoordinateFrame:SetParent(Minimap)
+    CoordinateFrame:SetHeight(20)
+    Module:UpdateCoordinateFrameFont()
+    
+    -- We'll match the color of the minimap text, always.
+    hooksecurefunc(MinimapZoneText, "SetTextColor", function(self, r, g, b, a)
+        CoordinateFrame:SetTextColor(r, g, b, a)
+    end)
+
+    WTweaks:Repeat(0.5, function()
+        Module:SyncCoordinates(false)
+    end)
+    
+    Module:SyncCoordinates(true)
+end
+
+function Module:UpdateCoordinateFrameFont()
+    local fontFile = WTweaks.Libs.SharedMedia:Fetch("font", Module.Settings.Minimap.Coordinates.FontFile)
+    local fontSize = Module.Settings.Minimap.Coordinates.FontSize
+    local fontFlags = Module.Settings.Minimap.Coordinates.ShowFontOutline and "OUTLINE" or nil
+    Minimap.CoordinateFrame:SetFont(fontFile, fontSize, fontFlags)
+end
+
+function Module:CreateIndicatorTray()
+    local MinimapIndicatorTray = CreateFrame("FRAME", "MinimapIndicatorTray", Minimap)
+    Minimap.IndicatorTray = MinimapIndicatorTray
+    MinimapIndicatorTray.Margin = 8
+    MinimapIndicatorTray.UseAutoWidth = true
+    MinimapIndicatorTray:SetPoint("TOP", Minimap, "TOP", -3, 3)
+    MinimapIndicatorTray:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMLEFT", -3, 3)
+
+    MinimapIndicatorTray.Add = function(self, newChild, shouldUpdateOnShow, shouldUpdateOnHide)
+        newChild:ClearAllPoints()
+        newChild:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+        newChild:SetParent(self)
+        
+        if shouldUpdateOnShow then
+            hooksecurefunc(newChild, "Show", function()
+                MinimapIndicatorTray:Layout()
+            end)
+        end
+        
+        if shouldUpdateOnHide then
+            hooksecurefunc(newChild, "Hide", function()
+                MinimapIndicatorTray:Layout()
+            end)
+        end
+    end
+
+    MinimapIndicatorTray.Layout = function(self)
+        local prevChild = nil
+        local widest = 0
+
+        for _, child in ipairs({ self:GetChildren() }) do 
+            if child:IsShown() and (child ~= MinimapCluster.IndicatorFrame or MiniMapMailIcon:GetParent():IsShown() or MiniMapCraftingOrderIcon:GetParent():IsShown()) then
+                child:ClearPoint("BOTTOM")
+
+                if prevChild == nil then
+                    child:SetPoint("BOTTOM", self, "BOTTOM", 0, 0)
+                else
+                    child:SetPoint("BOTTOM", prevChild, "TOP", 0, self.Margin)
+                end
+            
+                if self.UseAutoWidth == true then
+                    local width = child:GetWidth() * child:GetEffectiveScale()
+                    
+                    if width > widest then
+                        widest = width
+                    end
+                end
+                
+                prevChild = child
+            end
+        end
+
+        if self.UseAutoWidth == true then
+            self:SetWidth(widest)
+        end
+    end
+end
+
 function Module:CreateHeader()
+    local Bar = CreateFrame("FRAME", "MinimapHeaderBar", Minimap)
+    Bar.Backdrop = Bar:CreateTexture(nil, "BACKGROUND")
+    Bar.Backdrop:SetAllPoints(Bar)
+    Bar.Backdrop:SetColorTexture(0.03, 0.03, 0.03, 0.35)
+    Bar:SetHeight(20)
+    Minimap.HeaderBar = Bar
+
     -- Hijack existing border.
     MinimapCluster.BorderTop:Hide()
     MinimapCluster.BorderTop:ClearAllPoints()
@@ -103,67 +282,38 @@ function Module:CreateHeader()
     MinimapCluster.BorderTop:SetFrameStrata("LOW")
     MinimapCluster.BorderTop:SetFrameLevel(4)
     
-    local HeaderBar = CreateFrame("FRAME", "MinimapHeaderBar", Minimap)
-    Minimap.HeaderBar = HeaderBar
-    HeaderBar:ClearAllPoints()
-    HeaderBar:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 0, 0)
-    HeaderBar:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 0)
-    HeaderBar:SetHeight(20)
-    HeaderBar:SetFrameStrata("LOW")
-    HeaderBar:SetFrameLevel(4)
-
-    --local HeaderBarBackdrop = HeaderBar:CreateTexture(nil, "BACKGROUND")
-    --HeaderBarBackdrop:SetAllPoints(HeaderBar)
-    --HeaderBarBackdrop:SetColorTexture(0.03, 0.03, 0.03, 0.35)
-
     MinimapCluster.ZoneTextButton:ClearAllPoints()
     MinimapCluster.ZoneTextButton:SetFrameStrata("LOW")
     MinimapCluster.ZoneTextButton:SetFrameLevel(5)
-    MinimapCluster.ZoneTextButton:SetPoint("LEFT", Minimap.HeaderBar, "LEFT", 1, 0)
+    MinimapCluster.ZoneTextButton:SetParent(Bar)
+    MinimapCluster.ZoneTextButton:SetPoint("LEFT", Bar, "LEFT", 1, 0)
 end
 
 function Module:CreateFooter()
     local Bar = CreateFrame("FRAME", "MinimapFooterBar", Minimap)
-    Minimap.FooterBar = Bar
-    Bar:ClearAllPoints()
-    Bar:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 0, 0)
-    Bar:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
+    Bar.Backdrop = Bar:CreateTexture(nil, "BACKGROUND")
+    Bar.Backdrop:SetAllPoints(Bar)
+    Bar.Backdrop:SetColorTexture(0.03, 0.03, 0.03, 0.35)
     Bar:SetHeight(20)
-    Bar:SetFrameStrata("LOW")
-    Bar:SetFrameLevel(4)
-
-    --local Backdrop = Bar:CreateTexture(nil, "BACKGROUND")
-    --Backdrop:SetAllPoints(Bar)
-    --Backdrop:SetColorTexture(0.03, 0.03, 0.03, 0.5)
+    Minimap.FooterBar = Bar
     
-    -- Addon Button UPDATE_PENDING_MAIL
+    -- Addon Button
     AddonCompartmentFrame:ClearAllPoints()
+    AddonCompartmentFrame:SetParent(Bar)
     AddonCompartmentFrame:SetPoint("LEFT", Bar, "LEFT", 0, 0)
-    AddonCompartmentFrame:SetFrameStrata("LOW")
-    AddonCompartmentFrame:SetFrameLevel(5)
 
-    Minimap:HookScript("OnEnter", function()
-        AddonCompartmentFrame:Show()
-    end)
-    
-    Minimap:HookScript("OnLeave", function()
-        AddonCompartmentFrame:Hide()
-    end)
-    
-    -- AddonCompartmentFrame should stay visible
-    AddonCompartmentFrame:HookScript("OnEnter", AddonCompartmentFrame.Show)
-    AddonCompartmentFrame:HookScript("OnLeave", AddonCompartmentFrame.Hide)
-
-    -- Mail Button
-    MinimapCluster.IndicatorFrame:ClearAllPoints()
-    MinimapCluster.IndicatorFrame:SetParent(Bar)
-    MinimapCluster.IndicatorFrame:SetPoint("CENTER", Bar, "CENTER", 0, 0)
+    MinimapCluster.Tracking:ClearAllPoints()
+    MinimapCluster.Tracking.Background:Hide()
+    MinimapCluster.Tracking:SetParent(Bar)
+    MinimapCluster.Tracking:SetPoint("LEFT", AddonCompartmentFrame, "RIGHT", 5, 0)
 
     Minimap.ZoomIn:ClearAllPoints()
+    Minimap.ZoomIn:SetParent(Bar)
     Minimap.ZoomIn:SetPoint("RIGHT", Bar, "RIGHT", 0, -1)
 
     Minimap.ZoomOut:ClearAllPoints()
-    Minimap.ZoomOut:SetPoint("RIGHT", Bar, "RIGHT", -25, -1)
+    Minimap.ZoomOut:SetParent(Bar)
+    Minimap.ZoomOut:SetPoint("RIGHT", Minimap.ZoomIn, "LEFT", -5, 0)
 end
 
 -- Finds the corner of the screen that the minimap is close to and anchors the minimap to its direction.
@@ -192,19 +342,49 @@ function Module:ReanchorMinimapContainer()
     
     MinimapCluster.MinimapContainer:ClearAllPoints()
     MinimapCluster.MinimapContainer:SetPoint(anchor, MinimapCluster, anchor, margin.X, margin.Y)
+    MiniMapIndicatorFrame_UpdatePosition()
 end
 
 function Module:OnPlayerConnect()
+    QueueStatusButton:SetScale(0.5)
+    QueueStatusButton.UpdatePosition = WTweaks.NoOp
+    Minimap.IndicatorTray:Add(MiniMapCraftingOrderIcon:GetParent(), false, false)
+    Minimap.IndicatorTray:Add(MiniMapMailIcon:GetParent(), false, false)
+    Minimap.IndicatorTray:Add(QueueStatusButton, true, true)
     ExpansionLandingPageMinimapButton:Hide()
     
     if Module.Settings.Minimap.UseEmbeddedAddons then
         Module:EmbedAddons()
     end
-    
+
     Module:ReanchorMinimapContainer()
 
-    TimeManagerClockButton:ClearAllPoints()
-    TimeManagerClockButton:SetPoint("RIGHT", Minimap.HeaderBar, "RIGHT", 0, 0)
+    Minimap.HeaderBar:SetAlpha(0)
+    WTweaks:HookFader(Minimap.HeaderBar, {
+        Minimap,
+        GameTimeFrame,
+        TimeManagerClockButton,
+        MinimapCluster.ZoneTextButton
+    }, 0.1)
+
+    Minimap.FooterBar:SetAlpha(0)
+    WTweaks:HookFader(Minimap.FooterBar, {
+        Minimap,
+        AddonCompartmentFrame,
+        MinimapCluster.IndicatorFrame,
+        MinimapCluster.Tracking,
+        MinimapCluster.Tracking.Button,
+        Minimap.ZoomIn,
+        Minimap.ZoomOut
+    }, 0.1)
+    
+    Minimap.ZoomIn:Show()
+    Minimap.ZoomIn.Hide = Minimap.ZoomIn.Show
+
+    Minimap.ZoomOut:Show()
+    Minimap.ZoomOut.Hide = Minimap.ZoomOut.Show
+
+    MiniMapIndicatorFrame_UpdatePosition()
 end
 
 function Module:EmbedAddons()
@@ -227,6 +407,12 @@ function Module:EmbedAddons()
             child:Hide()
         end
     end
+end
+
+function Module:RepaintCanvas()
+    local originalZoom = Minimap:GetZoom()
+    Minimap:SetZoom(originalZoom > 0 and 0 or 1)
+    Minimap:SetZoom(originalZoom)
 end
 
 function Module:GetConfig()
@@ -252,8 +438,7 @@ function Module:GetConfig()
 					order = 1,
                     func = function()
                         Module.IsMoving = true
-                        MinimapCluster.Selection:ShowSelected()
-                        EditModeSystemSettingsDialog:AttachToSystemFrame(MinimapCluster)
+                        MinimapCluster:SelectSystem()
                     end
                 },
                 ScaleSpacer = {
@@ -268,26 +453,52 @@ function Module:GetConfig()
                     type = "toggle",
                     default = true,
 					order = 3
-                }
+                },
+				Coordinates = {
+					name = "Coordinate Block",
+					type = "group",
+					order = 4,
+                    inline = true,
+                    args = {
+                        CoordinatesVisibility = {
+                            name = "Coordinates",
+                            desc = "If auto, it will appear if mouse is over the area.",
+                            type = "select",
+                            values = {
+                                hidden = "Disabled",
+                                auto = "Auto",
+                                always = "Always Shown"
+                            },
+                            default = "auto",
+                            set = function(a, visibility)
+                                if visibility ~= "hidden" then
+                                    if Minimap.CoordinateFrame == nil then
+                                        Module:CreateCoordinateFrame()
+                                    end
+
+                                    Module:UpdateLayout()
+                                    Module:SyncCoordinates(true)
+                                else
+                                    Minimap.CoordinateFrame:Hide()
+                                end
+                            end
+                        }
+                    }
+				}
 			}
 		}
     }
-    --,
-    --            -- Spacer to make the tracker scale slider on its own line.
-    --           
-    --           
-	--			
-    --           
-	--			
-    --           
-    --local fontOptions = WTweaks:CreateFontOptions(12, 8, 20)
---
-    ---- Bump font options to bottom.
-    --for k, v in pairs(fontOptions) do
-    --    fontOptions[k].order = fontOptions[k].order + 100
-    --end
---
-    --WTweaks:Merge(fontOptions, config.Minimap.args)
+
+    -- Spacer to make the tracker scale slider on its own line. 
+    local fontOptions = WTweaks:CreateFontOptions(11, 8, 20)
+
+    -- Bump font options to bottom and hook their setters.
+    for k, v in pairs(fontOptions) do
+        fontOptions[k].set = Module.UpdateCoordinateFrameFont
+        fontOptions[k].order = fontOptions[k].order + 5
+    end
+    
+    WTweaks:Merge(fontOptions, config.Minimap.args.Coordinates.args)
 
     return config
 end

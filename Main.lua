@@ -139,15 +139,26 @@ function WTweaks:SetupConfigWatchers(group, config, groupName, module)
 					return unpack(config[name])
 				end
 			else
+				local originalSetter = option.set
 				option.set = function(info, ...)
 					local name = info[#info]
 					config[name] = ...
 
 					module:OnSettingChanged(config, name)
+					
+					if originalSetter ~= nil then
+						originalSetter(info, config[name])
+					end
 				end
 				
+				local originalGetter = option.get
 				option.get = function(info)
 					local name = info[#info]
+
+					if originalGetter ~= nil then
+						return originalGetter(info)
+					end
+
 					return config[name]
 				end
 			end
@@ -175,6 +186,23 @@ function WTweaks:HookEvent(eventName, callbackFunc)
 	end
 
 	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
+end
+
+function WTweaks:HookScript(eventName, callbackFunc)
+	WTweaks.Frames.Main:HookScript(eventName, callbackFunc)
+end
+
+function WTweaks:Repeat(interval, callbackFunc)
+	local startTime = 0
+
+	WTweaks:HookScript("OnUpdate", function(self, elapsed)
+		startTime = startTime + elapsed
+
+		if startTime > interval then
+			startTime = startTime - interval
+			callbackFunc()
+		end
+	end)
 end
 
 function WTweaks:IsFuncSaved(frame, funcName)
@@ -329,6 +357,44 @@ function WTweaks:ColorArrayToRGBA(color)
         b = color[3],
         a = color[4] or 1
     }
+end
+
+function WTweaks:IsMouseOverAnyFrames(targets)
+	local focused = GetMouseFocus()
+	
+	if focused then
+		for _, ChildFrame in ipairs(targets) do
+			if ChildFrame == focused or ChildFrame == focusedParent then
+				return true
+			end
+		end
+	end
+
+    return false
+end
+
+function WTweaks:HookFader(target, frames, time)
+    for _, ChildFrame in ipairs(frames) do
+        ChildFrame:HookScript("OnEnter", function()
+            UIFrameFadeIn(target, time, target:GetAlpha(), 1.0)
+        end)
+
+        ChildFrame:HookScript("OnLeave", function()
+            if not WTweaks:IsMouseOverAnyFrames(frames) then
+              UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
+            end
+        end)
+        
+        if ChildFrame.DropDown ~= nil then
+            EventRegistry:RegisterCallback("UIDropDownMenu.Hide", function()
+                if UIDropDownMenu_GetCurrentDropDown() == ChildFrame.DropDown then
+                    if not WTweaks:IsMouseOverAnyFrames(frames) then
+                      UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
+                    end
+                end
+            end)
+        end
+    end
 end
 
 function WTweaks:PrintTable(table, depth)

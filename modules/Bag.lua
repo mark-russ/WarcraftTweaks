@@ -196,7 +196,7 @@ function Module:VendorJunk()
 
 				if shouldSell then
 					C_Container.UseContainerItem(bagId, slotId)
-					print("|cFFFFFF00Sold " .. itemLink .. " for |r" .. GetMoneyString(sellPrice))
+					DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Sold " .. itemLink .. " for |r" .. GetMoneyString(sellPrice))
 				end
 			end
         end
@@ -214,6 +214,6 @@ function Module:RepairGear()
 			RepairAllItems()
 		end
 
-        print("|cFFFFFF00Gear repaired: |r" .. GetMoneyString(repairAllCost))
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Gear repaired: |r" .. GetMoneyString(repairAllCost))
 	end
 end

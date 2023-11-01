@@ -1,4 +1,4 @@
-## Interface: 100002
+## Interface: 100107
 ## Title: Warcraft Tweaks
 ## Notes: Modifications for the Dragonflight UI.
 ## Author: Mithindis

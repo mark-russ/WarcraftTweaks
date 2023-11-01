@@ -174,29 +174,7 @@ function Module:UpdateVendorJunkButtonState()
 end
 
 function Module:VendorJunk()
-    for bagId = 0, NUM_BAG_SLOTS do
-		local slotCount = C_Container.GetContainerNumSlots(bagId)
-
-        for slotId = 1, slotCount do
-			local itemInfo = C_Container.GetContainerItemInfo(bagId, slotId)
-			
-			if itemInfo and itemInfo.quality == Enum.ItemQuality.Poor then
-				local itemIsTransmoggable = C_TransmogCollection.GetItemInfo(itemInfo.hyperlink) ~= nil
-				local itemHasUnknownAppearance = itemIsTransmoggable and not C_TransmogCollection.PlayerHasTransmog(itemInfo.itemID)
-				local shouldSell = not itemHasUnknownAppearance and not itemInfo.hasNoValue
-				local itemName, itemLink, _, _, _, _, _, _, _, _, sellPrice = GetItemInfo(itemInfo.hyperlink)
-
-				if not MerchantFrame:IsShown() then
-					return
-				end
-
-				if shouldSell then
-					C_Container.UseContainerItem(bagId, slotId)
-					DEFAULT_CHAT_FRAME:AddMessage("|cFFFFFF00Sold " .. itemLink .. " for |r" .. GetMoneyString(sellPrice))
-				end
-			end
-        end
-    end
+	MerchantSellAllJunkButton:Click()
 end
 
 function Module:RepairGear()

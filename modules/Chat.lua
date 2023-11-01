@@ -27,6 +27,11 @@ function Module:Init(isRefreshing)
 		Module.IsHistoryLoaded = false
 		Module.IsEnabled = false
 		Module:LoadChatHistory()
+		
+		-- Extend global font sizes out.
+		for i = 8, 18 do
+			CHAT_FONT_HEIGHTS[i-7] = i
+		end
 	end
 
 	Module.ChatOutline = Module.Settings.Chat.ShowChatOutline and "OUTLINE" or ""

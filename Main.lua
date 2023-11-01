@@ -57,6 +57,14 @@ function LibAddon:OnInitialize()
 		end
 	end)
 	
+    WTweaks:HookEvent("PLAYER_ENTERING_WORLD", function()
+		for _, module in ipairs(WTweaks.Modules) do
+			if module.OnPlayerEnteringWorld then
+				module:OnPlayerEnteringWorld(self)
+			end
+		end
+	end)
+	
 	-- As events happen, notify.
 	WTweaks.Frames.Main:SetScript("OnEvent", function(self, event, ...)
 		for _, callback in pairs(WTweaks.NativeEvents[event]) do
@@ -152,7 +160,9 @@ function WTweaks:SetupConfigWatchers(group, config, groupName, module)
 					local name = info[#info]
 					config[name] = ...
 
-					module:OnSettingChanged(config, name)
+					if module.OnSettingChanged then
+						module:OnSettingChanged(config, name)
+					end
 					
 					if originalSetter ~= nil then
 						originalSetter(info, config[name])

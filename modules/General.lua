@@ -220,10 +220,3 @@ function Module:HookBagBarFader()
 
 	wasBagsBarHoverHooked = true
 end
-
-
---WTweaks:HookEvent("UPDATE_PENDING_MAIL", function()
---	if HasNewMail() then
---	--    print("MAIL RECEIVED")
---	end
---end)

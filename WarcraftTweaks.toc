@@ -12,11 +12,13 @@ embeds.xml
 Main.lua
 modules/General.lua
 modules/Bag.lua
+modules/Combat.lua
 modules/Chat.lua
 modules/Unit.lua
 modules/ObjectiveTracker.lua
 modules/Mail.lua
 modules/Minimap.lua
+modules/ToolTip.lua
 modules/Typography.lua
 modules/Profile.lua
-#modules/Developer.lua
+modules/Developer.lua

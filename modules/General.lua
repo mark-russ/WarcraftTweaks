@@ -42,6 +42,16 @@ function Module:OnInitialize(main)
 	end)
 end
 
+function Module:UpdateDeleteConfirmations()
+	StaticPopupDialogs.DELETE_GOOD_ITEM = StaticPopupDialogs.DELETE_ITEM
+	StaticPopupDialogs.DELETE_QUEST_ITEM = StaticPopupDialogs.DELETE_ITEM
+	StaticPopupDialogs.DELETE_GOOD_QUEST_ITEM = StaticPopupDialogs.DELETE_ITEM
+end
+
+function Module:UpdateEncounterBar() 
+    EncounterBar:SetScale(Module.Settings.General.EncounterBarScale)
+end
+
 function Module:OnSettingChanged(settings, groupName)
     Module:Init()
 end
@@ -52,6 +62,8 @@ function Module:Init()
 	Module:UpdateXPBarState()
 	Module:UpdateErrorTextState()
 	Module:UpdateRestedXPIndicatorState()
+	Module:UpdateDeleteConfirmations()
+	Module:UpdateEncounterBar()
 end
 
 function Module:GetConfig()
@@ -105,6 +117,15 @@ function Module:GetConfig()
 					order = 4,
 					width = 1.5
                 },
+				EncounterBarScale = {
+					name = "Encounter Bar Scale",
+					desc = "Sets the size of the encounter bar. This bar, for example, shows vigor when you're dragon riding.",
+					type = "range",
+					default = 1.0,
+					step = 0.05,
+					min = 0.1,
+					max = 2.0
+				},
 				Description = {
 					name = "+ Version: " .. WTweaks.Version,
 					type = "description",

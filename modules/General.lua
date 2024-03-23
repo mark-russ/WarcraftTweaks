@@ -50,6 +50,7 @@ end
 
 function Module:UpdateEncounterBar() 
     EncounterBar:SetScale(Module.Settings.General.EncounterBarScale)
+	ExtraAbilityContainer:SetScale(Module.Settings.General.ExtraAbilityContainerScale)
 end
 
 function Module:OnSettingChanged(settings, groupName)
@@ -64,6 +65,32 @@ function Module:Init()
 	Module:UpdateRestedXPIndicatorState()
 	Module:UpdateDeleteConfirmations()
 	Module:UpdateEncounterBar()
+
+	if AchievementFrame == nil then
+		WTweaks:HookEvent("ADDON_LOADED", function(addonName)
+			if addonName == "Blizzard_AchievementUI" then
+				AchievementFrame:HookScript("OnShow", Module.UpdateEmoteState)
+				AchievementFrame:HookScript("OnHide", Module.UpdateEmoteState)
+			end
+		end)
+	else
+		AchievementFrame:HookScript("OnShow", Module.UpdateEmoteState)
+		AchievementFrame:HookScript("OnHide", Module.UpdateEmoteState)
+	end
+	
+	PVEFrame:HookScript("OnShow", Module.UpdateEmoteState)
+	PVEFrame:HookScript("OnHide", Module.UpdateEmoteState)
+end
+
+function Module:UpdateEmoteState()
+	local shouldBeReading = PVEFrame:IsShown() or (AchievementFrame ~= nil and AchievementFrame:IsShown())
+	local shouldNotBeReading = PVEFrame:IsShown() == false and (AchievementFrame == nil or AchievementFrame:IsShown() == false)
+	
+	if shouldBeReading then
+		DoEmote("Read")
+	elseif shouldNotBeReading then
+		DoEmote(nil)
+	end
 end
 
 function Module:GetConfig()
@@ -120,6 +147,15 @@ function Module:GetConfig()
 				EncounterBarScale = {
 					name = "Encounter Bar Scale",
 					desc = "Sets the size of the encounter bar. This bar, for example, shows vigor when you're dragon riding.",
+					type = "range",
+					default = 1.0,
+					step = 0.05,
+					min = 0.1,
+					max = 2.0
+				},
+				ExtraAbilityContainerScale = {
+					name = "Extra Ability Container Scale",
+					desc = "Sets the size of the extra ability container. This container, for example, shows the garrison button or encounter-specific abilities.",
 					type = "range",
 					default = 1.0,
 					step = 0.05,

@@ -46,6 +46,9 @@ function Module:OnModuleRegistered()
     Module:CreateHeader()
     Module:CreateFooter()
 
+    --CreateFrame()
+    --ExpansionLandingPage:Hide();
+
     if Module.Settings.Minimap.Coordinates.CoordinatesVisibility ~= "hidden" then
         Module:CreateCoordinateFrame()
     end
@@ -90,9 +93,6 @@ function Module:OnStarted()
     TimeManagerClockButton:SetParent(Minimap.HeaderBar)
     TimeManagerClockButton:SetPoint("RIGHT", GameTimeFrame, "LEFT", 0, 0)
 
-    -- Expansion Button
-    ExpansionLandingPageMinimapButton:Hide()
-
     QueueStatusButton:SetScale(0.5)
     QueueStatusButton.UpdatePosition = WTweaks.NoOp
     
@@ -119,10 +119,11 @@ function Module:OnStarted()
         Minimap,
         AddonCompartmentFrame,
         MinimapCluster.IndicatorFrame,
-        MinimapCluster.Tracking,
-        MinimapCluster.Tracking.Button,
+        MinimapCluster.TrackingFrame,
+        MinimapCluster.TrackingFrame.Button,
         Minimap.ZoomIn,
-        Minimap.ZoomOut
+        Minimap.ZoomOut,
+        ExpansionLandingPageMinimapButton
     }, 0.1)
     
     Minimap.ZoomIn:Show()
@@ -331,10 +332,15 @@ function Module:CreateFooter()
     AddonCompartmentFrame:SetParent(Bar)
     AddonCompartmentFrame:SetPoint("LEFT", Bar, "LEFT", 0, 0)
 
-    MinimapCluster.Tracking:ClearAllPoints()
-    MinimapCluster.Tracking.Background:Hide()
-    MinimapCluster.Tracking:SetParent(Bar)
-    MinimapCluster.Tracking:SetPoint("LEFT", AddonCompartmentFrame, "RIGHT", 5, 0)
+    MinimapCluster.TrackingFrame:ClearAllPoints()
+    MinimapCluster.TrackingFrame.Background:Hide()
+    MinimapCluster.TrackingFrame:SetParent(Bar)
+    MinimapCluster.TrackingFrame:SetPoint("LEFT", AddonCompartmentFrame, "RIGHT", 5, 0)
+
+    ExpansionLandingPageMinimapButton:ClearAllPoints()
+    ExpansionLandingPageMinimapButton:SetParent(Bar)
+    ExpansionLandingPageMinimapButton:SetPoint("LEFT", MinimapCluster.TrackingFrame, "RIGHT", 5, 0)
+    ExpansionLandingPageMinimapButton:SetScale(0.3)
 
     Minimap.ZoomIn:ClearAllPoints()
     Minimap.ZoomIn:SetParent(Bar)
@@ -343,6 +349,9 @@ function Module:CreateFooter()
     Minimap.ZoomOut:ClearAllPoints()
     Minimap.ZoomOut:SetParent(Bar)
     Minimap.ZoomOut:SetPoint("RIGHT", Minimap.ZoomIn, "LEFT", -5, 0)
+
+    -- Expansion Button
+    --ExpansionLandingPageMinimapButton:Show()
 end
 
 -- Finds the corner of the screen that the minimap is close to and anchors the minimap to its direction.
@@ -376,21 +385,34 @@ end
 
 function Module:EmbedAddons()
     local children = { Minimap:GetChildren() }
-    for _, child in ipairs(children) do 
+    local blacklist = { "RareScannerMinimapIcon" }
+
+    for _, child in ipairs(children) do
         local childName = child:GetName()
 
         if childName ~= nil and child:IsShown() and string.find(childName, "LibDBIcon10_") == 1 then
-            local fallbackName = gsub(childName, "LibDBIcon10_", "")
+            local addonName = child.text or gsub(childName, "LibDBIcon10_", "")
     
-            AddonCompartmentFrame:RegisterAddon({
-                text = child.text or fallbackName,
-                icon = child.dataObject.icon,
-                notCheckable = true,
-                func = function()
-                    child.dataObject:OnClick("LeftButton")
+            if tContains(blacklist, addonName) ~= true then
+                local wasAddonAlreadyRegistered = false
+                for _, registeredAddon in ipairs(AddonCompartmentFrame.registeredAddons) do
+                    if registeredAddon.text == addonName then
+                        wasAddonAlreadyRegistered = true
+                    end
                 end
-            })
-            
+    
+                if wasAddonAlreadyRegistered == false then
+                    AddonCompartmentFrame:RegisterAddon({
+                        text = addonName,
+                        icon = child.dataObject.icon,
+                        notCheckable = true,
+                        func = function()
+                            child.dataObject:OnClick("LeftButton")
+                        end
+                    })
+                end
+            end
+                    
             child:Hide()
         end
     end

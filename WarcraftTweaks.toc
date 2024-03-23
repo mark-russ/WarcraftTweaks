@@ -1,8 +1,8 @@
-## Interface: 100200
+## Interface: 100206
 ## Title: Warcraft Tweaks
 ## Notes: Modifications for the Dragonflight UI.
 ## Author: Mithindis
-## Version: 1.6.1
+## Version: 1.6.2
 ## SavedVariables: WarcraftTweaks
 ## X-WoWI-ID: 26440
 ## IconTexture: 4279397

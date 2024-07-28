@@ -5,6 +5,11 @@ local C = DeveloperConsole
 function Module:OnModuleRegistered(main)
 	main:RegisterChatCommand("find", Module.OnFindCommandInvoked)
 	main:RegisterChatCommand("templates", Module.ListFrames)
+
+	main:RegisterChatCommand("interface", function()
+        interfaceVersion = select(4, GetBuildInfo())
+        print("Interface: " .. interfaceVersion)
+    end)
 end
 
 function WTweaks:PrintTable(table, targetFrame, depth)

@@ -1,0 +1,21 @@
+## Interface: 100200
+## Title: Warcraft Tweaks
+## Notes: Modifications for the Dragonflight UI.
+## Author: Aderic
+## Version: 1.6
+## SavedVariables: WarcraftTweaks
+## X-WoWI-ID: 26440
+## IconTexture: 4279397
+## AddonCompartmentFunc: WTweaks_OpenSettings
+
+Embeds.xml
+Main.lua
+Util.lua
+modules/Developer.lua
+modules/General.lua
+modules/Mail.lua
+modules/Bag.lua
+modules/Minimap.lua
+modules/ObjectiveTracker.lua
+modules/Typography.lua
+modules/Chat.lua

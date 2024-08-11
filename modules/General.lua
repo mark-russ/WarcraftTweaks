@@ -32,6 +32,24 @@ function Module:OnModuleRegistered()
 	Module:UpdateRestedXPIndicatorState();
 	Module:UpdateBagBarState();
 	Module:UpdateConfirmationsState();
+
+	for _, enum in pairs(Enum.TooltipDataType) do
+		--DevTools_Dump(item);
+		
+		TooltipDataProcessor.AddTooltipPostCall(enum, function(self, thing)
+			if IsShiftKeyDown() then
+				if enum == Enum.TooltipDataType.Unit then
+					local unitID = tonumber(string.match(thing.guid, "Creature%-.-%-.-%-.-%-.-%-(.-)%-"));
+
+					if (unitID) then
+						self:AddLine("ID: " .. unitID, 0, 1, 0);
+					end
+				elseif thing.id then
+					self:AddLine("ID: " .. thing.id, 0, 1, 0);
+				end
+			end
+		end)
+	end
 end
 
 function Module:UpdateMicroBarState()

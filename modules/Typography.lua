@@ -240,6 +240,7 @@ function Module:UpdateWindowText()
 	GameFont_Gigantic:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
 	GameFontNormalHuge4:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
 	GameFontBlack:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
+	GameFontHighlightSmall:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
 	GameFontHighlightLarge:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
 	GameFontNormalSmall2:SetFont(primaryFontPath, Module.Settings.Typography.General.Primary.FontSize, Module.Settings.Typography.General.Primary.FontOutline);
 end

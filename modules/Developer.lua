@@ -12,32 +12,33 @@ function Module:OnModuleRegistered(main)
     end)
 end
 
-function WTweaks:PrintTable(table, targetFrame, depth)
-    if targetFrame == nil then
-        targetFrame = ChatFrame1
-    end
-
-	local depth = (depth or -5) + 5 
-	local indentation = string.rep(" ", depth)
-	for elementName, element in pairs(table) do
-		local elementType = type(element)
-
-		if elementType == "table" then
-			targetFrame:AddMessage(indentation .. elementName .. " {")
-			WTweaks:PrintTable(element, targetFrame, depth)
-			targetFrame:AddMessage(indentation .. "}")
-		else
-            if (elementType == "string") then
-                elementValue = "\"" .. tostring(element) .. "\""
-            else
-                elementValue = tostring(element)
-            end
-            
-			targetFrame:AddMessage(indentation .. elementName .. " = " .. elementValue)
-		end
-	end
-end
-
+-- Replacement: DevTools_Dump
+--function WTweaks:PrintTable(table, targetFrame, depth)
+--    if targetFrame == nil then
+--        targetFrame = ChatFrame1
+--    end
+--
+--	local depth = (depth or -5) + 5 
+--	local indentation = string.rep(" ", depth)
+--	for elementName, element in pairs(table) do
+--		local elementType = type(element)
+--
+--		if elementType == "table" then
+--			targetFrame:AddMessage(indentation .. elementName .. " {")
+--			WTweaks:PrintTable(element, targetFrame, depth)
+--			targetFrame:AddMessage(indentation .. "}")
+--		else
+--            if (elementType == "string") then
+--                elementValue = "\"" .. tostring(element) .. "\""
+--            else
+--                elementValue = tostring(element)
+--            end
+--            
+--			targetFrame:AddMessage(indentation .. elementName .. " = " .. elementValue)
+--		end
+--	end
+--end
+--
 Module.ListFrames = function(searchType)
     C:Clear()
     C:AddMessage("==============================[Search results]==============================")

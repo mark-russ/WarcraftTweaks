@@ -2,7 +2,7 @@
 ## Title: Warcraft Tweaks
 ## Notes: Modifications for the Dragonflight UI.
 ## Author: Aderic
-## Version: 1.7
+## Version: 1.7.1
 ## SavedVariables: WarcraftTweaks
 ## X-WoWI-ID: 26440
 ## IconTexture: 4279397

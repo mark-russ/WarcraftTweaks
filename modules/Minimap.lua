@@ -18,6 +18,30 @@ function Module:OnModuleRegistered()
         WTweaks:DelayedCall(0.1, function()
             Module:InitFaders();
             Module:EmbedAddons();
+                    
+            --ActionBars = {
+            --    "Action",
+            --    "MultiBarBottomLeft",
+            --    "MultiBarBottomRight",
+            --    "MultiBarLeft",
+            --    "MultiBarRight",
+            --    "MultiBar5",
+            --    "MultiBar6",
+            --    "MultiBar7",
+            --};
+--
+            --for _, actionBar in ipairs(ActionBars) do
+            --    for i = 1, NUM_ACTIONBAR_BUTTONS do
+            --        frame = _G[actionBar.."Button"..i];
+            --        hooksecurefunc(frame["NormalTexture"], "Show", function()
+            --            frame["NormalTexture"]:Hide();
+            --        end)
+            --        frame["NormalTexture"]:Hide();
+            --        --frame["NormalTexture"]:Hide();
+            --        --frame:Hide()
+            --    end
+            --end
+
         end);
     end);
     

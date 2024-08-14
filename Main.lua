@@ -1,6 +1,6 @@
 local AddonName, WTweaks = ...
 local LibAddon = LibStub("AceAddon-3.0"):NewAddon(AddonName, "AceConsole-3.0")
-WTweaks.Version = GetAddOnMetadata(AddonName, "Version")
+WTweaks.Version = C_AddOns.GetAddOnMetadata(AddonName, "Version")
 
 local DBName = AddonName
 WTweaks.Frames = {

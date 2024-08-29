@@ -43,6 +43,8 @@ function LibAddon:OnInitialize()
 	WTweaks.Libs.SharedMedia:Register("font", "OS Bold Italic", [[Interface\AddOns\WarcraftTweaks\media\fonts\opensans_bold_italic.ttf]])
 	WTweaks.Libs.SharedMedia:Register("font", "OS SemiBold", [[Interface\AddOns\WarcraftTweaks\media\fonts\opensans_semibold.ttf]])
 	WTweaks.Libs.SharedMedia:Register("font", "OS SemiBold Italic", [[Interface\AddOns\WarcraftTweaks\media\fonts\opensans_semibold_italic.ttf]])
+	WTweaks.Libs.SharedMedia:Register("font", "OS Regular", [[Interface\AddOns\WarcraftTweaks\media\fonts\opensans_semibold.ttf]])
+	WTweaks.Libs.SharedMedia:Register("font", "OS Regular Italic", [[Interface\AddOns\WarcraftTweaks\media\fonts\opensans_semibold_italic.ttf]])
 
 	WTweaks.Options = {
 		Fonts = WTweaks.Libs.SharedMedia:HashTable("font"),

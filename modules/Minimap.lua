@@ -14,34 +14,14 @@ function Module:OnModuleRegistered()
         Module:UpdateLayout();
     end);
 
+    EventRegistry:RegisterCallback("ExpansionLandingPage.OverlayChanged", function()
+        Module:UpdateExpansionButton();
+    end)
+
     WTweaks:HookEvent("PLAYER_ENTERING_WORLD", function()
         WTweaks:DelayedCall(0.1, function()
             Module:InitFaders();
             Module:EmbedAddons();
-                    
-            --ActionBars = {
-            --    "Action",
-            --    "MultiBarBottomLeft",
-            --    "MultiBarBottomRight",
-            --    "MultiBarLeft",
-            --    "MultiBarRight",
-            --    "MultiBar5",
-            --    "MultiBar6",
-            --    "MultiBar7",
-            --};
---
-            --for _, actionBar in ipairs(ActionBars) do
-            --    for i = 1, NUM_ACTIONBAR_BUTTONS do
-            --        frame = _G[actionBar.."Button"..i];
-            --        hooksecurefunc(frame["NormalTexture"], "Show", function()
-            --            frame["NormalTexture"]:Hide();
-            --        end)
-            --        frame["NormalTexture"]:Hide();
-            --        --frame["NormalTexture"]:Hide();
-            --        --frame:Hide()
-            --    end
-            --end
-
         end);
     end);
     
@@ -171,12 +151,6 @@ function Module:CreateHeader()
     MinimapTrackingFrame:SetParent(Minimap.Header);
     MinimapTrackingFrame:SetPoint("LEFT", AddonCompartmentFrame, "RIGHT", 3, 0);
 
-    ExpansionLandingPageMinimapButton:ClearAllPoints();
-    ExpansionLandingPageMinimapButton:SetScale(0.325);
-    ExpansionLandingPageMinimapButton:Hide();
-    ExpansionLandingPageMinimapButton:SetParent(Minimap.Header);
-    ExpansionLandingPageMinimapButton:SetPoint("LEFT", MinimapTrackingFrame, "RIGHT", 10, 0);
-
     Minimap.ZoomIn:ClearAllPoints();
     Minimap.ZoomIn:SetParent(Minimap.Header);
     Minimap.ZoomIn:SetPoint("RIGHT", Minimap.Header, "RIGHT", 0, -1);
@@ -221,19 +195,21 @@ function Module:CreateFooter()
     MinimapCluster.BorderTop:Hide();
 end
 
+function Module:UpdateExpansionButton()
+    ExpansionLandingPageMinimapButton:ClearAllPoints();
+    ExpansionLandingPageMinimapButton:SetParent(Minimap.Header);
+    ExpansionLandingPageMinimapButton:SetPoint("LEFT", MinimapTrackingFrame, "RIGHT", 3, 0);
+    ExpansionLandingPageMinimapButton:SetScale(0.45);
+end
+
 function Module:InitFaders()
     Minimap.Header:SetAlpha(0);
     Minimap.Footer:SetAlpha(0);
     
-    WTweaks:HookFaderAlt({ 
-        Minimap.Header,
-        Minimap.Footer
-     }, {
-        Minimap
-    }, 0.1);
+    WTweaks:HookFader(Minimap.Header, Minimap, 0.1);
+    WTweaks:HookFader(Minimap.Footer, Minimap, 0.1);
 
     frames = {
-        Minimap.Header,
         AddonCompartmentFrame,
         AddonCompartmentFrame.DropDown,
         MinimapTrackingFrame.Button,
@@ -242,35 +218,14 @@ function Module:InitFaders()
         MinimapCluster.InstanceDifficulty,
         Minimap.ZoomIn,
         Minimap.ZoomOut,
-        Minimap.Footer,
         MinimapCluster.ZoneTextButton,
         GameTimeFrame,
         TimeManagerClockButton
     };
 
-    for _, childFrame in ipairs(frames) do
+    for _, childFrame in pairs(frames) do
         childFrame:SetPropagateMouseMotion(true);
     end;
-
-
-    --WTweaks:HookFaderAlt({ Minimap.Header }, {
-    --    Minimap.Header,
-    --    AddonCompartmentFrame,
-    --    AddonCompartmentFrame.DropDown,
-    --    MinimapTrackingFrame.Button,
-    --    MinimapTrackingFrame.DropDown,
-    --    ExpansionLandingPageMinimapButton,
-    --    MinimapCluster.InstanceDifficulty,
-    --    Minimap.ZoomIn,
-    --    Minimap.ZoomOut,
-    --}, 0.1);
-    --
-    --WTweaks:HookFaderAlt({ Minimap.Footer }, {
-    --    Minimap.Footer,
-    --    MinimapCluster.ZoneTextButton,
-    --    GameTimeFrame,
-    --    TimeManagerClockButton
-    --}, 0.1);
 end
 
 function Module:GetConfig()

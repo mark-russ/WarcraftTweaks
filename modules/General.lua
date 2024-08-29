@@ -27,6 +27,7 @@ local BlacklistedMessageTypes = {
 function Module:OnModuleRegistered() 
 	WTweaks:AddOptionPage(AddonName, "General")
 
+	Module:UpdateUnitFrameState();
 	Module:UpdateMicroBarState();
 	Module:UpdateErrorTextState();
 	Module:UpdateRestedXPIndicatorState();
@@ -50,6 +51,29 @@ function Module:OnModuleRegistered()
 			end
 		end)
 	end
+end
+
+function Module:UpdateUnitFrameState()
+	if Module.Settings.General.PlayerUnitFrameVisibility == "hidden" then
+		Module:UnhookFader(PlayerFrame, { PlayerFrame });
+		PlayerFrame:Hide();
+	elseif Module.Settings.General.PlayerUnitFrameVisibility == "always" then
+		WTweaks:UnhookFader(PlayerFrame, { PlayerFrame });
+		PlayerFrame:Show();
+	else
+		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.HealthBarsContainer.HealthBar:SetPropagateMouseMotion(true);
+		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.ManaBarArea:SetPropagateMouseMotion(true);
+		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.ManaBarArea.ManaBar:SetPropagateMouseMotion(true);
+		PlayerFrame:SetAlpha(0);
+		WTweaks:HookFader(PlayerFrame, PlayerFrame, 0.1);
+	end
+	--
+	--if Module.Settings.General.ShowTargetUnitFrame then
+	--	TargetFrame:Show();
+	--else
+	--	TargetFrame.Show = function() end;
+	--	TargetFrame:Hide();
+	--end
 end
 
 function Module:UpdateMicroBarState()
@@ -143,8 +167,12 @@ function Module:HookBagBarFader()
 		return
 	end
 
-	BagsBar:SetAlpha(0.0)
-	WTweaks:HookFader(BagsBar, { BagsBar, unpack({ BagsBar:GetChildren() }) }, BagBarFadeSpeed)
+	for _, bagChild in pairs({ BagsBar:GetChildren() }) do
+		bagChild:SetPropagateMouseMotion(true);
+	end
+	
+	BagsBar:SetAlpha(0.0);
+	WTweaks:HookFader(BagsBar, BagsBar, BagBarFadeSpeed);
 
 	WasBagsBarHoverHooked = true
 end
@@ -177,6 +205,27 @@ function Module:GetConfig()
                     },
                     default = "always",
 					set = Module.UpdateBagBarState
+                },
+                PlayerUnitFrameVisibility = {
+                    name = "Player unit frame visibility",
+                    desc = "If auto, it will appear if mouse is over the area.",
+                    type = "select",
+                    values = {
+                        hidden = "Always Hidden",
+                        auto = "Auto",
+                        always = "Always Shown"
+                    },
+                    default = "always",
+					set = Module.UpdateUnitFrameState
+                },
+                ShowTargetUnitFrame = {
+                    name = "Show target frame",
+                    desc = "If unchecked, the target frame will be hidden.",
+                    type = "toggle",
+                    default = true,
+                    order = 3,
+                    width = 1.5,
+					set = Module.UpdateUnitFrameState
                 },
                 ShowRestedXP = {
                     name = "Show resting indicator",

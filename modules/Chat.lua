@@ -171,7 +171,11 @@ function Module:FindFriendDisplayNameByBattleTag(battleTag)
 	for i = 1, friendCount do
 		local friendDetails = C_BattleNet.GetAccountInfoByID(i);
 		
-		if (friendDetails.battleTag == battleTag) then
+		if (friendDetails == nil) then
+			return "UNKNOWN";
+		end
+
+		if (friendDetails ~= nil and friendDetails.battleTag == battleTag) then
 			return friendDetails.accountName;
 		end
 	end

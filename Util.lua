@@ -121,52 +121,22 @@ function WTweaks:HookEvent(eventName, callbackFunc)
 	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
 end
 
-function WTweaks:HookFader(target, frames, time)
-    for _, ChildFrame in ipairs(frames) do
-        ChildFrame:HookScript("OnEnter", function()
-            UIFrameFadeIn(target, time, target:GetAlpha(), 1.0)
-        end)
+function WTweaks:HookFader(target, activator, time)
+	activator:HookScript("OnEnter", function()
+		UIFrameFadeIn(target, time, target:GetAlpha(), 1.0)
+	end)
 
-        ChildFrame:HookScript("OnLeave", function()
-            --if not WTweaks:IsMouseOverAnyFrames(frames) then
-			if not WTweaks:IsMouseOverFrame(ChildFrame) then
-              UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
-            end
-        end)
-        
-        if ChildFrame.DropDown ~= nil then
-            EventRegistry:RegisterCallback("UIDropDownMenu.Hide", function()
-                if UIDropDownMenu_GetCurrentDropDown() == ChildFrame.DropDown then
-                    -- if not WTweaks:IsMouseOverAnyFrames(frames) then
-					if not WTweaks:IsMouseOverFrame(ChildFrame) then
-                      UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
-                    end
-                end
-            end)
-        end
-    end
-end
-
-function WTweaks:HookFaderAlt(framesToFade, framesToWatch, time)
-    for _, frameToWatch in ipairs(framesToWatch) do
-		frameToWatch:HookScript("OnEnter", function()
-			for _, childFrame in ipairs(framesToFade) do
-				UIFrameFadeIn(childFrame, time, childFrame:GetAlpha(), 1.0);
-			end;
-		end);
-		
-		frameToWatch:HookScript("OnLeave", function()
-			if not WTweaks:IsMouseOverFrame(frameToWatch) then
-				for _, childFrame in ipairs(framesToFade) do
-					UIFrameFadeIn(childFrame, time, childFrame:GetAlpha(), 0.0);
-				end;
+	activator:HookScript("OnLeave", function()
+		UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
+	end)
+	
+	if activator.DropDown ~= nil then
+		EventRegistry:RegisterCallback("UIDropDownMenu.Hide", function()
+			if UIDropDownMenu_GetCurrentDropDown() == activator.DropDown then
+				if not WTweaks:IsMouseOverFrame(activator) then
+				  UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
+				end
 			end
-
-			--if not WTweaks:IsMouseOverAnyFrames(framesToWatch) then
-			--	for _, childFrame in ipairs(framesToFade) do
-			--		UIFrameFadeIn(childFrame, time, childFrame:GetAlpha(), 0.0);
-			--	end;
-			--end
 		end)
 	end
 end
@@ -200,7 +170,6 @@ function WTweaks:IsMouseOverAnyFrames(targets)
 	
 	if focused then
 		for _, ChildFrame in ipairs(targets) do
-			ChildFrame:SetPropagateMouseMotion(true)
 			if ChildFrame == focused or ChildFrame == focusedParent then
 				return true
 			end

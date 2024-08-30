@@ -121,13 +121,31 @@ function WTweaks:HookEvent(eventName, callbackFunc)
 	tinsert(WTweaks.NativeEvents[eventName], callbackFunc)
 end
 
-function WTweaks:HookFader(target, activator, time)
+function WTweaks:HookFader(target, activator, time, computedConditional)
+	if WTweaks.FaderRegistry == nil then
+		WTweaks.FaderRegistry = {};
+	end
+
+	if WTweaks.FaderRegistry[target] == true then
+		return;
+	else
+		WTweaks.FaderRegistry[target] = true;
+	end
+
 	activator:HookScript("OnEnter", function()
-		UIFrameFadeIn(target, time, target:GetAlpha(), 1.0)
+		if computedConditional ~= nil and computedConditional() ~= true then
+			return;
+		end
+
+		UIFrameFadeIn(target, time, target:GetAlpha(), 1.0);
 	end)
 
 	activator:HookScript("OnLeave", function()
-		UIFrameFadeOut(target, time, target:GetAlpha(), 0.0)
+		if computedConditional ~= nil and computedConditional() ~= true then
+			return;
+		end
+
+		UIFrameFadeOut(target, time, target:GetAlpha(), 0.0);
 	end)
 	
 	if activator.DropDown ~= nil then

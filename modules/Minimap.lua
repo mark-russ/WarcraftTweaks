@@ -1,5 +1,6 @@
 local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("Minimap");
+local FadeSpeed = 0.1;
 Minimap.IsLayoutFlipped = MinimapCluster:GetSettingValueBool(Enum.EditModeMinimapSetting.HeaderUnderneath);
 
 function Module:OnModuleRegistered()
@@ -64,23 +65,31 @@ function Module:EmbedAddons()
     if Module.Settings.Minimap.UseEmbeddedAddons then
         local children = { Minimap:GetChildren() }
         for _, child in ipairs(children) do 
-            local childName = child:GetName()
+            local childName = child:GetName();
     
             if childName ~= nil and child:IsShown() and string.find(childName, "LibDBIcon10_") == 1 then
-                local fallbackName = gsub(childName, "LibDBIcon10_", "");
+                local name = child.text or gsub(childName, "LibDBIcon10_", "");
+                local isAddonAlreadyRegistered = false;
 
-                if fallbackName ~= "RareScannerMinimapIcon" then
+                for _, registeredAddon in ipairs(AddonCompartmentFrame.registeredAddons) do
+                    if name == registeredAddon.text then
+                        isAddonAlreadyRegistered = true;
+                        break;
+                    end
+                end
+
+                if isAddonAlreadyRegistered ~= true and name ~= "RareScannerMinimapIcon" then
                     AddonCompartmentFrame:RegisterAddon({
-                        text = child.text or fallbackName,
+                        text = name,
                         icon = child.dataObject.icon,
                         registerForAnyClick = true,
                         notCheckable = true,
                         func = function(data, inputData, menu)
                             child:Click(inputData.buttonName)
                         end
-                    })
+                    });
                 end
-                    
+
                 child:Hide();
             end
         end
@@ -204,10 +213,10 @@ end
 
 function Module:InitFaders()
     Minimap.Header:SetAlpha(0);
+    WTweaks:HookFader(Minimap.Header, Minimap, FadeSpeed);
+
     Minimap.Footer:SetAlpha(0);
-    
-    WTweaks:HookFader(Minimap.Header, Minimap, 0.1);
-    WTweaks:HookFader(Minimap.Footer, Minimap, 0.1);
+    WTweaks:HookFader(Minimap.Footer, Minimap, FadeSpeed);
 
     frames = {
         AddonCompartmentFrame,

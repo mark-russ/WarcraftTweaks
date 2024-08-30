@@ -1,7 +1,6 @@
 local AddonName, WTweaks = ...
 local Module = WTweaks:RegisterModule("General")
-local BagBarFadeSpeed = 0.1
-local WasBagsBarHoverHooked = false
+local FadeSpeed = 0.1
 
 -- Can be found through GetGameMessageInfo.
 local BlacklistedMessageTypes = {
@@ -35,8 +34,6 @@ function Module:OnModuleRegistered()
 	Module:UpdateConfirmationsState();
 
 	for _, enum in pairs(Enum.TooltipDataType) do
-		--DevTools_Dump(item);
-		
 		TooltipDataProcessor.AddTooltipPostCall(enum, function(self, thing)
 			if IsShiftKeyDown() then
 				if enum == Enum.TooltipDataType.Unit then
@@ -55,25 +52,33 @@ end
 
 function Module:UpdateUnitFrameState()
 	if Module.Settings.General.PlayerUnitFrameVisibility == "hidden" then
-		Module:UnhookFader(PlayerFrame, { PlayerFrame });
 		PlayerFrame:Hide();
 	elseif Module.Settings.General.PlayerUnitFrameVisibility == "always" then
-		WTweaks:UnhookFader(PlayerFrame, { PlayerFrame });
 		PlayerFrame:Show();
 	else
+		PlayerFrame:Show();
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.HealthBarsContainer.HealthBar:SetPropagateMouseMotion(true);
-		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.ManaBarArea:SetPropagateMouseMotion(true);
 		PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.ManaBarArea.ManaBar:SetPropagateMouseMotion(true);
 		PlayerFrame:SetAlpha(0);
-		WTweaks:HookFader(PlayerFrame, PlayerFrame, 0.1);
+		WTweaks:HookFader(PlayerFrame, PlayerFrame, FadeSpeed, function()
+			return Module.Settings.General.PlayerUnitFrameVisibility == "auto";
+		end);
 	end
-	--
-	--if Module.Settings.General.ShowTargetUnitFrame then
-	--	TargetFrame:Show();
-	--else
-	--	TargetFrame.Show = function() end;
-	--	TargetFrame:Hide();
-	--end
+	
+	if Module.Settings.General.TargetUnitFrameVisibility == "hidden" then
+		TargetFrame:EnableMouse(false);
+		TargetFrame:SetAlpha(0);
+	elseif Module.Settings.General.TargetUnitFrameVisibility == "always" then
+		TargetFrame:EnableMouse(true);
+		TargetFrame:SetAlpha(1);
+	else
+		TargetFrame.TargetFrameContent.TargetFrameContentMain.HealthBarsContainer.HealthBar:SetPropagateMouseMotion(true);
+		TargetFrame.TargetFrameContent.TargetFrameContentMain.ManaBar:SetPropagateMouseMotion(true);
+		TargetFrame:SetAlpha(0);
+		WTweaks:HookFader(TargetFrame, TargetFrame, FadeSpeed, function()
+			return Module.Settings.General.TargetUnitFrameVisibility == "auto";
+		end);
+	end
 end
 
 function Module:UpdateMicroBarState()
@@ -116,13 +121,12 @@ end
 
 function Module:UpdateBagBarState()
 	if Module.Settings.General.BagBarVisibility == "hidden" then
-		Module:UnhookBagBarFader()
 		BagsBar:Hide()
 	elseif Module.Settings.General.BagBarVisibility == "always" then
-		Module:UnhookBagBarFader()
 		BagsBar:Show()
 	else
-		UIFrameFadeOut(BagsBar, BagBarFadeSpeed, BagsBar:GetAlpha(), 0.0)
+		BagsBar:Show()
+		BagsBar:SetAlpha(0);
 		Module:HookBagBarFader()
 	end
 end
@@ -144,37 +148,15 @@ function Module:UpdateConfirmationsState()
 	end
 end
 
-function Module:UnhookBagBarFader()
-	if not WasBagsBarHoverHooked then
-		return
-	end
-
-	BagsBar:SetAlpha(1.0)
-	BagsBar:SetScript("OnEnter", nil)
-	BagsBar:SetScript("OnLeave", nil)
-
-	for i=1, select("#", BagsBar:GetChildren()) do
-		local ChildFrame = select(i, BagsBar:GetChildren())
-		ChildFrame:SetScript("OnEnter", nil)
-		ChildFrame:SetScript("OnLeave", nil)
-	end
-	
-	WasBagsBarHoverHooked = false
-end
-
 function Module:HookBagBarFader()
-	if WasBagsBarHoverHooked then
-		return
-	end
-
 	for _, bagChild in pairs({ BagsBar:GetChildren() }) do
 		bagChild:SetPropagateMouseMotion(true);
 	end
 	
 	BagsBar:SetAlpha(0.0);
-	WTweaks:HookFader(BagsBar, BagsBar, BagBarFadeSpeed);
-
-	WasBagsBarHoverHooked = true
+	WTweaks:HookFader(BagsBar, BagsBar, FadeSpeed, function()
+		return Module.Settings.General.BagBarVisibility == "auto";
+	end);
 end
 
 function Module:GetConfig()
@@ -218,13 +200,16 @@ function Module:GetConfig()
                     default = "always",
 					set = Module.UpdateUnitFrameState
                 },
-                ShowTargetUnitFrame = {
-                    name = "Show target frame",
-                    desc = "If unchecked, the target frame will be hidden.",
-                    type = "toggle",
-                    default = true,
-                    order = 3,
-                    width = 1.5,
+                TargetUnitFrameVisibility = {
+                    name = "Target unit frame visibility",
+                    desc = "If auto, it will appear if mouse is over the area.",
+                    type = "select",
+                    values = {
+                        hidden = "Always Hidden",
+                        auto = "Auto",
+                        always = "Always Shown"
+                    },
+                    default = "always",
 					set = Module.UpdateUnitFrameState
                 },
                 ShowRestedXP = {
